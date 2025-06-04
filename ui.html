@@ -21,7 +21,7 @@
         --figma-bg-secondary: #383838;
         --figma-bg-tertiary: #444444;
         --figma-border: #444444;
-        --figma-input-bg: #222222;
+        --figma-input-bg: #2c2c2c;
 
         /* Aliases for backward compatibility */
         --primary: var(--figma-blue);
@@ -29,13 +29,46 @@
         --danger: var(--figma-red);
         --danger-hover: var(--figma-red-hover);
         --success: var(--figma-success);
+        
+        /* Scrollbar colors */
+        --scrollbar-track: #2c2c2c;
+        --scrollbar-thumb: #555555;
+        --scrollbar-thumb-hover: #666666;
       }
 
       * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
       }
+      
+      /* Custom scrollbar for webkit browsers */
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+        border-radius: 3px;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 3px;
+        transition: background 0.2s ease;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-thumb-hover);
+      }
+      
+      ::-webkit-scrollbar-corner {
+        background: var(--scrollbar-track);
+      }
+      
       body {
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
           Roboto, sans-serif;
@@ -191,44 +224,106 @@
       }
 
       .preview-list {
-        margin-top: 16px;
-        max-height: 100px;
+        max-height: 200px;
         overflow-y: auto;
-        border: 1px solid var(--figma-border);
-        border-radius: 4px;
-        background: var(--figma-bg-tertiary);
       }
 
-      .preview-list::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .preview-list::-webkit-scrollbar-track {
-        background: var(--figma-bg);
-        border-radius: 2px;
-      }
-
-      .preview-list::-webkit-scrollbar-thumb {
-        background-color: #666666;
-        border-radius: 2px;
-      }
       .preview-item {
-        padding: 4px 6px;
+        padding: 8px 10px;
         border-bottom: 1px solid var(--figma-border);
-        font-size: 0.7rem;
+        font-size: 0.75rem;
       }
-
+      
       .preview-item:last-child {
         border-bottom: none;
       }
-
-      .preview-item .before {
-        color: var(--figma-red);
+      
+      .preview-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      
+      .preview-node-name {
+        font-weight: 500;
+        color: var(--figma-text);
+      }
+      
+      .preview-property {
+        color: var(--figma-text-secondary);
+        font-size: 0.7rem;
+      }
+      
+      .preview-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
-      .preview-item .after {
+      .before, .after {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .before {
+        color: var(--figma-red);
+        flex: 1;
+      }
+
+      .after {
         color: var(--figma-success);
-        margin-left: 8px;
+        flex: 1;
+      }
+      
+      .arrow {
+        color: var(--figma-text-secondary);
+        font-size: 0.9rem;
+      }
+      
+      .color-swatch {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      
+      .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.7rem;
+        font-weight: 500;
+      }
+      
+      .text-icon {
+        background: rgba(24, 160, 251, 0.2);
+        color: var(--figma-blue);
+      }
+      
+      .number-icon {
+        background: rgba(255, 149, 0, 0.2);
+        color: #FF9500;
+      }
+      
+      .boolean-icon {
+        background: rgba(175, 82, 222, 0.2);
+        color: #AF52DE;
+      }
+      
+      .other-icon {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--figma-text-secondary);
+      }
+      
+      .value {
+        font-size: 0.7rem;
+        word-break: break-word;
       }
       .button {
         display: inline-flex;
@@ -290,11 +385,72 @@
         opacity: 1;
         transform: translateX(-50%) translateY(-4px);
       }
+      
+      .toast.success {
+        background-color: var(--figma-success);
+        color: white;
+        font-weight: 500;
+      }
+      
+      .toast.error {
+        background-color: var(--figma-red);
+        color: white;
+        font-weight: 500;
+      }
+      
+      .toast.info {
+        background-color: var(--figma-blue);
+        color: white;
+        font-weight: 500;
+      }
+
+      .preview-section {
+        margin-top: 16px;
+        border: 1px solid var(--figma-border);
+        border-radius: 4px;
+        background: var(--figma-bg-tertiary);
+        overflow: hidden;
+      }
+      
+      .preview-header-toggle {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        background: var(--figma-bg-secondary);
+        border-bottom: 1px solid var(--figma-border);
+        user-select: none;
+      }
+      
+      .preview-header-toggle:hover {
+        background: var(--figma-bg-tertiary);
+      }
+      
+      .preview-title {
+        font-weight: 500;
+        font-size: 0.8rem;
+      }
+      
+      .preview-count {
+        color: var(--figma-text-secondary);
+        font-size: 0.7rem;
+      }
+      
+      .toggle-icon {
+        font-size: 0.7rem;
+        color: var(--figma-text-secondary);
+        transition: transform 0.2s ease;
+      }
+      
+      .toggle-icon.open {
+        transform: rotate(180deg);
+      }
     </style>
   </head>
   <body>
     <div class="header">
-      <h1>Detachr</h1>
+      <h1>Detacher</h1>
       <p
         style="
           font-size: 0.7rem;
@@ -331,12 +487,8 @@
           <div class="count-label">Numbers</div>
         </div>
         <div class="count-item">
-          <div class="count-number" id="spacingCount">0</div>
-          <div class="count-label">Spacing</div>
-        </div>
-        <div class="count-item">
-          <div class="count-number" id="booleanCount">0</div>
-          <div class="count-label">Boolean</div>
+          <div class="count-number" id="otherCount">0</div>
+          <div class="count-label">Other</div>
         </div>
         <div class="count-item">
           <div class="count-number" id="totalCount">0</div>
@@ -352,7 +504,7 @@
           Colors
         </label>
         <label class="checkbox-item">
-          <input type="checkbox" id="textToggle" />
+          <input type="checkbox" id="textToggle" checked />
           Text
         </label>
         <label class="checkbox-item">
@@ -360,26 +512,27 @@
           Numbers
         </label>
         <label class="checkbox-item">
-          <input type="checkbox" id="spacingToggle" checked />
-          Spacing
-        </label>
-        <label class="checkbox-item">
-          <input type="checkbox" id="booleanToggle" />
-          Boolean
-        </label>
-        <label class="checkbox-item">
-          <input type="checkbox" id="otherToggle" />
+          <input type="checkbox" id="otherToggle" checked />
           Other
         </label>
       </div>
 
       <div class="preview-toggle">
         <input type="checkbox" id="dryRunToggle" checked />
-        <label for="dryRunToggle">Preview Mode (Dry Run)</label>
+        <label for="dryRunToggle">
+          Require Preview Before Detach
+        </label>
       </div>
     </div>
 
-    <div id="previewList" class="preview-list" style="display: none"></div>
+    <div class="preview-section" style="display: none;" id="previewSection">
+      <div class="preview-header-toggle" id="previewHeaderToggle">
+        <span class="preview-title">Preview Changes</span>
+        <span class="preview-count" id="previewCount">(0)</span>
+        <span class="toggle-icon">▼</span>
+      </div>
+      <div id="previewList" class="preview-list"></div>
+    </div>
 
     <button id="detachButton" class="button button-primary">
       Preview Changes
@@ -398,8 +551,6 @@
         color: 0,
         text: 0,
         number: 0,
-        spacing: 0,
-        boolean: 0,
         other: 0,
         total: 0
       };
@@ -414,6 +565,15 @@
 
         // Setup event listeners
         setupEventListeners();
+        
+        // Ensure all checkboxes are checked initially
+        document.getElementById("colorToggle").checked = true;
+        document.getElementById("textToggle").checked = true;
+        document.getElementById("numberToggle").checked = true;
+        document.getElementById("otherToggle").checked = true;
+        
+        // Update filtered counts based on initial checkbox state
+        updateFilteredCounts();
       });
 
       function setupEventListeners() {
@@ -428,13 +588,15 @@
           updateDetachButtonText();
         });
         
+        // Preview header toggle
+        const previewHeaderToggle = document.getElementById("previewHeaderToggle");
+        previewHeaderToggle.addEventListener("click", togglePreviewList);
+        
         // Set up listeners for all checkbox toggles
         const checkboxToggles = [
           "colorToggle", 
           "textToggle", 
           "numberToggle", 
-          "spacingToggle", 
-          "booleanToggle", 
           "otherToggle"
         ];
         
@@ -454,6 +616,19 @@
         });
       }
 
+      function togglePreviewList() {
+        const previewList = document.getElementById("previewList");
+        const toggleIcon = document.querySelector(".toggle-icon");
+        
+        if (previewList.style.display === "none") {
+          previewList.style.display = "block";
+          toggleIcon.classList.add("open");
+        } else {
+          previewList.style.display = "none";
+          toggleIcon.classList.remove("open");
+        }
+      }
+
       function updateDetachButtonText() {
         const detachButton = document.getElementById("detachButton");
         
@@ -463,15 +638,10 @@
           hasPreviewedChanges = false;
           console.log("Button updated: Preview Changes mode");
         } else {
-          if (hasPreviewedChanges) {
-            detachButton.textContent = "Detach Variables";
-            detachButton.className = "button button-danger";
-            console.log("Button updated: Detach Variables mode");
-          } else {
-            detachButton.textContent = "Preview First";
-            detachButton.className = "button button-primary";
-            console.log("Button updated: Preview First mode");
-          }
+          // When dry run is off, always show "Detach Variables" button
+          detachButton.textContent = "Detach Variables";
+          detachButton.className = "button button-danger";
+          console.log("Button updated: Detach Variables mode");
         }
       }
 
@@ -480,8 +650,6 @@
           color: document.getElementById("colorToggle").checked,
           text: document.getElementById("textToggle").checked,
           number: document.getElementById("numberToggle").checked,
-          spacing: document.getElementById("spacingToggle").checked,
-          boolean: document.getElementById("booleanToggle").checked,
           other: document.getElementById("otherToggle").checked,
           dryRun: isDryRun,
         };
@@ -498,8 +666,6 @@
           color: options.color ? fullCounts.color : 0,
           text: options.text ? fullCounts.text : 0,
           number: options.number ? fullCounts.number : 0,
-          spacing: options.spacing ? fullCounts.spacing : 0,
-          boolean: options.boolean ? fullCounts.boolean : 0,
           other: options.other ? fullCounts.other : 0,
           total: 0
         };
@@ -531,26 +697,126 @@
         });
       }
 
-      function showToast(message) {
+      function showToast(message, type = 'default') {
         const toast = document.getElementById("toast");
         toast.textContent = message;
+        
+        // Remove any existing classes
+        toast.classList.remove("show", "success", "error", "info");
+        
+        // Add the appropriate class based on type
         toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 3000);
+        if (type === 'success') {
+          toast.classList.add("success");
+        } else if (type === 'error') {
+          toast.classList.add("error");
+        } else if (type === 'info') {
+          toast.classList.add("info");
+        }
+        
+        // Clear any existing timeout
+        if (window.toastTimeout) {
+          clearTimeout(window.toastTimeout);
+        }
+        
+        // Set timeout based on type
+        const duration = type === 'success' ? 2000 : 3000;
+        window.toastTimeout = setTimeout(() => {
+          toast.classList.remove("show", "success", "error", "info");
+          
+          // If this was a success message from detachment, check for variables after toast disappears
+          if (type === 'success' && message.includes('Successfully detached')) {
+            checkForVariablesAfterDelay(500);
+          }
+        }, duration);
+      }
+      
+      function checkForVariablesAfterDelay(delay) {
+        setTimeout(() => {
+          if (fullCounts.total === 0) {
+            showToast("No variables found. Try selecting different elements.");
+          }
+        }, delay);
       }
 
       function updatePreviewList(detached) {
+        const previewSection = document.getElementById("previewSection");
         const previewList = document.getElementById("previewList");
-        previewList.style.display = detached.length > 0 ? "block" : "none";
+        const previewCount = document.getElementById("previewCount");
+        
+        // Update preview count
+        previewCount.textContent = `(${detached.length})`;
+        
+        // Show preview section if there are items to display
+        previewSection.style.display = detached.length > 0 ? "block" : "none";
+        
+        // Initially hide the preview list (will be shown when dropdown is clicked)
+        previewList.style.display = "none";
+        
+        // Remove the open class from toggle icon
+        const toggleIcon = document.querySelector(".toggle-icon");
+        if (toggleIcon) toggleIcon.classList.remove("open");
 
         if (detached.length > 0) {
           previewList.innerHTML = detached
             .map(
-              (item) => `
-          <div class="preview-item">
-            <div class="before">${item.nodeName}: ${item.currentVariable}</div>
-            <div class="after">→ ${item.resolvedValue}</div>
-          </div>
-        `
+              (item) => {
+                // Create a visual representation based on the variable type
+                let visualBefore = '';
+                let visualAfter = '';
+                
+                // Handle different variable types
+                if (item.variableType === 'color') {
+                  // For colors, show color swatches
+                  const beforeColor = item.currentVariable.startsWith('#') ? 
+                    item.currentVariable : 
+                    (typeof item.resolvedValue === 'string' && item.resolvedValue.startsWith('#') ? 
+                      item.resolvedValue : '#CCCCCC');
+                  
+                  const afterColor = typeof item.resolvedValue === 'string' && item.resolvedValue.startsWith('#') ? 
+                    item.resolvedValue : '#CCCCCC';
+                  
+                  visualBefore = `<span class="color-swatch" style="background-color: ${beforeColor}"></span>`;
+                  visualAfter = `<span class="color-swatch" style="background-color: ${afterColor}"></span>`;
+                } else if (item.variableType === 'text') {
+                  // For text, show a text icon
+                  visualBefore = `<span class="icon text-icon">T</span>`;
+                  visualAfter = `<span class="icon text-icon">T</span>`;
+                } else if (item.variableType === 'number') {
+                  // For numbers, show a ruler icon
+                  visualBefore = `<span class="icon number-icon">#</span>`;
+                  visualAfter = `<span class="icon number-icon">#</span>`;
+                } else {
+                  // For other types, show a generic icon
+                  visualBefore = `<span class="icon other-icon">•</span>`;
+                  visualAfter = `<span class="icon other-icon">•</span>`;
+                }
+                
+                // Format the property name to be more readable
+                const propertyName = item.property
+                  .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                  .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+                
+                return `
+                  <div class="preview-item">
+                    <div class="preview-header">
+                      <span class="preview-node-name">${item.nodeName}</span>
+                      <span class="preview-property">${propertyName}</span>
+                    </div>
+                    <div class="preview-content">
+                      <div class="before">
+                        ${visualBefore}
+                        <span class="value">${item.currentVariable}</span>
+                      </div>
+                      <div class="arrow">→</div>
+                      <div class="after">
+                        ${visualAfter}
+                        <span class="value">${String(item.resolvedValue).substring(0, 30)}${String(item.resolvedValue).length > 30 ? '...' : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }
             )
             .join("");
         }
@@ -561,34 +827,40 @@
         console.log("Detach button clicked. Current button text:", document.getElementById("detachButton").textContent);
         console.log("isDryRun:", isDryRun, "hasPreviewedChanges:", hasPreviewedChanges);
         
-        // If not in dry run mode and haven't previewed, force a preview first
-        if (!isDryRun && !hasPreviewedChanges) {
-          options.dryRun = true;
-          showToast("Preview required before detaching. Generating preview...");
-          console.log("Forcing preview before detachment. Updated options:", options);
-        }
-        
-        console.log("Sending detach request with options:", options);
-        
-        parent.postMessage(
-          {
-            pluginMessage: {
-              type: "detach",
-              payload: {
-                bindings: currentBindings,
-                options,
+        // If preview mode is on, generate preview
+        if (isDryRun) {
+          console.log("Preview mode active. Generating preview...");
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "detach",
+                payload: {
+                  bindings: currentBindings,
+                  options,
+                },
               },
             },
-          },
-          "*"
-        );
-        
-        if (options.dryRun) {
+            "*"
+          );
           showToast("Generating preview...");
-          console.log("Preview mode active. Generating preview...");
-        } else {
-          showToast("Detaching variables...");
+        } 
+        // If preview mode is off, perform detachment
+        else {
+          // Proceed with actual detachment
           console.log("Detachment mode active. Detaching variables...");
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "detach",
+                payload: {
+                  bindings: currentBindings,
+                  options,
+                },
+              },
+            },
+            "*"
+          );
+          showToast("Detaching variables...");
         }
       }
 
@@ -608,9 +880,16 @@
             currentBindings = message.payload.bindings;
             updateCounts(message.payload.counts);
             
-            if (message.payload.counts.total === 0) {
+            // Show selection notification if needed
+            if (message.payload.noSelection) {
+              showToast("Please select frames, layers, or components to scan for variables.", 'info');
+              return;
+            }
+            
+            // Only show "No variables found" if not immediately after a detachment
+            if (message.payload.counts.total === 0 && !message.payload.afterDetach) {
               showToast("No variables found. Try selecting different elements.");
-            } else {
+            } else if (!message.payload.afterDetach) {
               showToast(`Found ${message.payload.counts.total} variables.`);
             }
             break;
@@ -629,7 +908,8 @@
               updateDetachButtonText();
             } else {
               showToast(
-                `${message.payload.counts.total} variables detached successfully!`
+                `✓ Successfully detached ${message.payload.counts.total} variables!`,
+                'success'
               );
               console.log("Detachment successful. Refreshing scan...");
               // Reset preview state after successful detach
@@ -640,13 +920,18 @@
               updateDetachButtonText();
               
               // Refresh scan after detaching
-              parent.postMessage({ pluginMessage: { type: "scan" } }, "*");
+              parent.postMessage({ pluginMessage: { type: "scan", afterDetach: true } }, "*");
             }
             break;
 
           case "error":
             console.error("Error from plugin:", message.payload);
-            showToast(`Error: ${message.payload.message}`);
+            showToast(`Error: ${message.payload.message}`, 'error');
+            break;
+
+          case "no-selection":
+            console.log("No selection:", message.payload);
+            showToast(message.payload.message, 'error');
             break;
 
           case "show-about":

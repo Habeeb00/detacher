@@ -4,8 +4,6 @@ type VariableType =
   | "color"
   | "text"
   | "number"
-  | "spacing"
-  | "boolean"
   | "other";
 
 // Constants to use for consistency and to avoid magic strings
@@ -13,8 +11,6 @@ const VariableTypes = {
   color: "color",
   text: "text",
   number: "number",
-  spacing: "spacing",
-  boolean: "boolean",
   other: "other",
 } as const;
 
@@ -33,8 +29,6 @@ interface ScanResults {
     color: number;
     text: number;
     number: number;
-    spacing: number;
-    boolean: number;
     other: number;
     total: number;
   };
@@ -44,8 +38,6 @@ interface DetachOptions {
   color: boolean;
   text: boolean;
   number: boolean;
-  spacing: boolean;
-  boolean: boolean;
   other: boolean;
   dryRun: boolean;
 }
@@ -73,8 +65,30 @@ figma.ui.onmessage = async (msg) => {
     if (msg.type === "scan") {
       console.log("Received scan request from UI");
       try {
-        const results = await scanVariables();
-        figma.ui.postMessage({ type: "scan-results", payload: results });
+        // Check if there's a selection
+        if (figma.currentPage.selection.length === 0) {
+          console.log("No elements selected for scan");
+          
+          // Still perform the scan on the current page, but also send a notification
+          const results = await scanVariables();
+          figma.ui.postMessage({ 
+            type: "scan-results", 
+            payload: {
+              ...results,
+              afterDetach: msg.afterDetach,
+              noSelection: true
+            }
+          });
+        } else {
+          const results = await scanVariables();
+          figma.ui.postMessage({ 
+            type: "scan-results", 
+            payload: {
+              ...results,
+              afterDetach: msg.afterDetach
+            }
+          });
+        }
       } catch (error: any) {
         console.error("Error during scan:", error);
         figma.ui.postMessage({
@@ -85,6 +99,16 @@ figma.ui.onmessage = async (msg) => {
     } else if (msg.type === "detach") {
       console.log("Received detach request from UI", msg.payload);
       try {
+        // Check if there's a selection
+        if (figma.currentPage.selection.length === 0) {
+          console.log("No elements selected");
+          figma.ui.postMessage({
+            type: "no-selection",
+            payload: { message: "Please select frames, layers, or components first." }
+          });
+          return;
+        }
+        
         const results = await detachVariables(
           msg.payload.bindings,
           msg.payload.options
@@ -147,8 +171,6 @@ async function scanVariables(): Promise<ScanResults> {
     color: 0,
     text: 0,
     number: 0,
-    spacing: 0,
-    boolean: 0,
     other: 0,
     total: 0,
   };
@@ -214,7 +236,7 @@ async function scanVariables(): Promise<ScanResults> {
                 property.includes("padding") ||
                 property.includes("margin")
               ) {
-                variableType = VariableTypes.spacing;
+                variableType = VariableTypes.other;
                 resolvedValue = Number(
                   (resolvedVariable && resolvedVariable.value) || 0
                 );
@@ -228,7 +250,7 @@ async function scanVariables(): Promise<ScanResults> {
                 resolvedVariable &&
                 typeof resolvedVariable.value === "boolean"
               ) {
-                variableType = VariableTypes.boolean;
+                variableType = VariableTypes.other;
                 resolvedValue = Boolean(resolvedVariable.value);
               } else {
                 variableType = VariableTypes.other;
@@ -342,8 +364,6 @@ async function detachVariables(
     color: number;
     text: number;
     number: number;
-    spacing: number;
-    boolean: number;
     other: number;
   };
 }> {
@@ -602,22 +622,24 @@ async function detachVariables(
             }
             // Handle spacing and number properties
             else if (
-              (binding.variableType === VariableTypes.spacing ||
-                binding.variableType === VariableTypes.number) &&
-              typeof binding.resolvedValue === "number"
+              binding.variableType === VariableTypes.number ||
+              (binding.variableType === VariableTypes.other &&
+               typeof binding.resolvedValue === "number")
             ) {
               console.log(`Setting numeric value: ${binding.resolvedValue}`);
+              const numericValue = Number(binding.resolvedValue);
+              
               // Apply to the specific property if possible
               if (binding.property === "width" && "resize" in node) {
                 (node as RectangleNode).resize(
-                  binding.resolvedValue,
+                  numericValue,
                   (node as RectangleNode).height
                 );
                 console.log("Applied width value");
               } else if (binding.property === "height" && "resize" in node) {
                 (node as RectangleNode).resize(
                   (node as RectangleNode).width,
-                  binding.resolvedValue
+                  numericValue
                 );
                 console.log("Applied height value");
               } else if (
@@ -626,25 +648,25 @@ async function detachVariables(
               ) {
                 // Check if node has padding properties
                 if (binding.property === "paddingLeft" && "paddingLeft" in node) {
-                  (node as any).paddingLeft = binding.resolvedValue;
+                  (node as any).paddingLeft = numericValue;
                   console.log("Applied paddingLeft value");
                 }
                 if (
                   binding.property === "paddingRight" &&
                   "paddingRight" in node
                 ) {
-                  (node as any).paddingRight = binding.resolvedValue;
+                  (node as any).paddingRight = numericValue;
                   console.log("Applied paddingRight value");
                 }
                 if (binding.property === "paddingTop" && "paddingTop" in node) {
-                  (node as any).paddingTop = binding.resolvedValue;
+                  (node as any).paddingTop = numericValue;
                   console.log("Applied paddingTop value");
                 }
                 if (
                   binding.property === "paddingBottom" &&
                   "paddingBottom" in node
                 ) {
-                  (node as any).paddingBottom = binding.resolvedValue;
+                  (node as any).paddingBottom = numericValue;
                   console.log("Applied paddingBottom value");
                 }
               }
@@ -697,8 +719,6 @@ async function detachVariables(
     color: detached.filter((b) => b.variableType === VariableTypes.color).length,
     text: detached.filter((b) => b.variableType === VariableTypes.text).length,
     number: detached.filter((b) => b.variableType === VariableTypes.number).length,
-    spacing: detached.filter((b) => b.variableType === VariableTypes.spacing).length,
-    boolean: detached.filter((b) => b.variableType === VariableTypes.boolean).length,
     other: detached.filter((b) => b.variableType === VariableTypes.other).length,
   };
   
