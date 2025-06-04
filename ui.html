@@ -9,29 +9,33 @@
     />
     <style>
       :root {
-        /* Updated Figma-inspired color palette */
-        --figma-blue: #18a0fb;
-        --figma-blue-hover: #1994e6;
-        --figma-red: #f24822;
-        --figma-red-hover: #d93915;
-        --figma-success: #14ae5c;
-        --figma-text: #ffffff;
-        --figma-text-secondary: #b3b3b3;
-        --figma-bg: #2c2c2c;
-        --figma-bg-secondary: #383838;
-        --figma-bg-tertiary: #444444;
-        --figma-border: #444444;
-        --figma-input-bg: #2c2c2c;
-
-        /* Aliases for backward compatibility */
-        --primary: var(--figma-blue);
-        --primary-hover: var(--figma-blue-hover);
-        --danger: var(--figma-red);
-        --danger-hover: var(--figma-red-hover);
-        --success: var(--figma-success);
+        /* iOS-inspired color palette */
+        --ios-blue: #007AFF;
+        --ios-blue-dark: #0062CC;
+        --ios-blue-light: #4CA5FF;
+        --ios-red: #FF3B30;
+        --ios-red-dark: #D70015;
+        --ios-green: #34C759;
+        --ios-green-dark: #248A3D;
+        --ios-text: #ffffff;
+        --ios-text-secondary: #8E8E93;
+        --ios-bg: #1C1C1E;
+        --ios-bg-secondary: #2C2C2E;
+        --ios-bg-tertiary: #3A3A3C;
+        --ios-border: #38383A;
+        --ios-input-bg: #1C1C1E;
+        
+        /* Gradients */
+        --gradient-blue: linear-gradient(135deg, var(--ios-blue-light), var(--ios-blue));
+        --gradient-red: linear-gradient(135deg, #FF6B58, var(--ios-red));
+        --gradient-green: linear-gradient(135deg, #4CD964, var(--ios-green));
+        
+        /* Shadows */
+        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
         
         /* Scrollbar colors */
-        --scrollbar-track: #2c2c2c;
+        --scrollbar-track: var(--ios-bg);
         --scrollbar-thumb: #555555;
         --scrollbar-thumb-hover: #666666;
       }
@@ -72,60 +76,73 @@
       body {
         font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
           Roboto, sans-serif;
-        color: var(--figma-text);
-        padding: 16px;
+        color: var(--ios-text);
+        padding: 12px 16px;
         max-width: 100%;
         overflow-x: hidden;
-        background-color: var(--figma-bg);
+        background-color: var(--ios-bg);
       }
       .header {
-        margin-bottom: 20px;
+        margin-bottom: 12px;
+        text-align: left;
       }
 
       h1 {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: 600;
-        margin-bottom: 10px;
-        color: var(--figma-text);
+        margin-bottom: 4px;
+        color: var(--ios-text);
+        background: var(--gradient-blue);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .summary {
-        background: var(--figma-bg-secondary);
-        border-radius: 6px;
-        padding: 10px;
-        margin-bottom: 15px;
-        border: 1px solid var(--figma-border);
+        background: var(--ios-bg-secondary);
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        border: 1px solid var(--ios-border);
+        box-shadow: var(--shadow-sm);
       }
       .counts {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-        margin-top: 10px;
+        gap: 8px;
+        margin-top: 8px;
       }
 
       .count-item {
         text-align: center;
-        padding: 6px 3px;
-        background: var(--figma-bg-tertiary);
-        border-radius: 3px;
+        padding: 6px 4px;
+        background: var(--ios-bg-tertiary);
+        border-radius: 8px;
         transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
       }
 
       .count-item:hover {
-        background: #555555;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
       }
 
       .count-number {
         font-size: 1rem;
-        font-weight: 500;
-        color: var(--figma-blue);
+        font-weight: 600;
+        color: var(--ios-blue);
+        background: var(--gradient-blue);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       .count-label {
-        font-size: 0.75rem;
-        color: var(--figma-text-secondary);
+        font-size: 0.7rem;
+        color: var(--ios-text-secondary);
+        margin-top: 2px;
       }
       .options {
-        margin-bottom: 20px;
+        margin-bottom: 12px;
       }
       .checkbox-group {
         display: grid;
@@ -137,103 +154,150 @@
       .checkbox-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 6px 8px;
-        background: var(--figma-bg-tertiary);
-        border-radius: 4px;
+        gap: 6px;
+        padding: 8px 10px;
+        background: var(--ios-bg-secondary);
+        border-radius: 8px;
         cursor: pointer;
         font-size: 0.8rem;
         transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
       }
 
       .checkbox-item:hover {
-        background: #555555;
+        background: var(--ios-bg-tertiary);
+        transform: translateY(-1px);
       }
 
-      /* Figma-style checkbox */
+      /* iOS-style checkbox */
       .checkbox-item input[type="checkbox"] {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
         cursor: pointer;
         position: relative;
         appearance: none;
         border: 1px solid #777777;
-        border-radius: 3px;
+        border-radius: 4px;
         outline: none;
         transition: all 0.2s ease;
         vertical-align: middle;
-        background-color: var(--figma-input-bg);
+        background-color: var(--ios-input-bg);
       }
 
       .checkbox-item input[type="checkbox"]:checked {
-        background-color: var(--figma-blue);
-        border-color: var(--figma-blue);
+        background: var(--gradient-blue);
+        border-color: var(--ios-blue);
       }
 
       .checkbox-item input[type="checkbox"]:checked::after {
         content: "";
         position: absolute;
-        left: 3px;
+        left: 4px;
         top: 1px;
-        width: 5px;
-        height: 7px;
+        width: 6px;
+        height: 8px;
         border: solid white;
-        border-width: 0 1px 1px 0;
+        border-width: 0 2px 2px 0;
         transform: rotate(45deg);
       }
       .preview-toggle {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-bottom: 16px;
-        padding: 12px;
-        background: rgba(24, 160, 251, 0.1);
-        border-radius: 4px;
+        margin-bottom: 12px;
+        padding: 10px 14px;
+        background: rgba(0, 122, 255, 0.1);
+        border-radius: 8px;
         font-size: 0.8rem;
+        box-shadow: var(--shadow-sm);
       }
 
       .preview-toggle input[type="checkbox"] {
-        width: 12px;
-        height: 12px;
+        width: 16px;
+        height: 16px;
         cursor: pointer;
         position: relative;
         appearance: none;
         border: 1px solid #777777;
-        border-radius: 2px;
+        border-radius: 4px;
         outline: none;
         transition: all 0.2s ease;
         vertical-align: middle;
-        background-color: var(--figma-input-bg);
+        background-color: var(--ios-input-bg);
       }
 
       .preview-toggle input[type="checkbox"]:checked {
-        background-color: var(--figma-blue);
-        border-color: var(--figma-blue);
+        background: var(--gradient-blue);
+        border-color: var(--ios-blue);
       }
 
       .preview-toggle input[type="checkbox"]:checked::after {
         content: "";
         position: absolute;
-        left: 3px;
+        left: 4px;
         top: 1px;
-        width: 5px;
-        height: 7px;
+        width: 6px;
+        height: 8px;
         border: solid white;
-        border-width: 0 1px 1px 0;
+        border-width: 0 2px 2px 0;
         transform: rotate(45deg);
+      }
+      
+      .preview-section {
+        margin-top: 12px;
+        border: 1px solid var(--ios-border);
+        border-radius: 10px;
+        background: var(--ios-bg-secondary);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+      
+      .preview-header-toggle {
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        background: var(--ios-bg-secondary);
+        border-bottom: 1px solid var(--ios-border);
+        user-select: none;
+      }
+      
+      .preview-header-toggle:hover {
+        background: var(--ios-bg-tertiary);
+      }
+      
+      .preview-title {
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+      
+      .preview-count {
+        color: var(--ios-text-secondary);
+        font-size: 0.7rem;
+      }
+      
+      .toggle-icon {
+        font-size: 0.7rem;
+        color: var(--ios-text-secondary);
+        transition: transform 0.2s ease;
+      }
+      
+      .toggle-icon.open {
+        transform: rotate(180deg);
       }
 
       .preview-list {
-        max-height: 200px;
+        max-height: 150px;
         overflow-y: auto;
       }
 
       .preview-item {
-        padding: 8px 10px;
-        border-bottom: 1px solid var(--figma-border);
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--ios-border);
         font-size: 0.75rem;
       }
-      
+
       .preview-item:last-child {
         border-bottom: none;
       }
@@ -245,12 +309,12 @@
       }
       
       .preview-node-name {
-        font-weight: 500;
-        color: var(--figma-text);
+        font-weight: 600;
+        color: var(--ios-text);
       }
       
       .preview-property {
-        color: var(--figma-text-secondary);
+        color: var(--ios-text-secondary);
         font-size: 0.7rem;
       }
       
@@ -267,26 +331,27 @@
       }
 
       .before {
-        color: var(--figma-red);
+        color: var(--ios-red);
         flex: 1;
       }
 
       .after {
-        color: var(--figma-success);
+        color: var(--ios-green);
         flex: 1;
       }
       
       .arrow {
-        color: var(--figma-text-secondary);
-        font-size: 0.9rem;
+        color: var(--ios-text-secondary);
+        font-size: 0.8rem;
       }
       
       .color-swatch {
         display: inline-block;
         width: 14px;
         height: 14px;
-        border-radius: 2px;
+        border-radius: 4px;
         border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: var(--shadow-sm);
       }
       
       .icon {
@@ -295,30 +360,25 @@
         justify-content: center;
         width: 14px;
         height: 14px;
-        border-radius: 2px;
-        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
         font-size: 0.7rem;
-        font-weight: 500;
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
       }
       
       .text-icon {
-        background: rgba(24, 160, 251, 0.2);
-        color: var(--figma-blue);
+        background: linear-gradient(135deg, #5AC8FA, #007AFF);
+        color: white;
       }
       
       .number-icon {
-        background: rgba(255, 149, 0, 0.2);
-        color: #FF9500;
-      }
-      
-      .boolean-icon {
-        background: rgba(175, 82, 222, 0.2);
-        color: #AF52DE;
+        background: linear-gradient(135deg, #FF9500, #FF5E3A);
+        color: white;
       }
       
       .other-icon {
-        background: rgba(255, 255, 255, 0.1);
-        color: var(--figma-text-secondary);
+        background: linear-gradient(135deg, #64D2FF, #5856D6);
+        color: white;
       }
       
       .value {
@@ -329,133 +389,99 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        padding: 5px 12px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        border-radius: 4px;
+        gap: 6px;
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 8px;
         border: none;
         cursor: pointer;
-        transition: all 0.15s ease;
-        margin-top: 4px;
+        transition: all 0.2s ease;
+        margin-top: 8px;
+        box-shadow: var(--shadow-sm);
       }
 
       .button-primary {
-        background: var(--figma-blue);
+        background: var(--gradient-blue);
         color: white;
       }
 
       .button-primary:hover {
-        background: var(--figma-blue-hover);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
       }
       .button-primary:active {
+        transform: translateY(0);
         opacity: 0.9;
       }
 
       .button-danger {
-        background: var(--figma-red);
+        background: var(--gradient-red);
         color: white;
       }
 
       .button-danger:hover {
-        background: var(--figma-red-hover);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
       }
 
       .button-danger:active {
+        transform: translateY(0);
         opacity: 0.9;
       }
 
       .toast {
         position: fixed;
-        bottom: 16px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        padding: 8px 16px;
-        background: #222222;
+        padding: 10px 20px;
+        background: rgba(28, 28, 30, 0.9);
         color: white;
-        border-radius: 2px;
-        font-size: 0.7rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
         opacity: 0;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
         pointer-events: none;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
       }
 
       .toast.show {
         opacity: 1;
-        transform: translateX(-50%) translateY(-4px);
+        transform: translateX(-50%) translateY(-8px);
       }
       
       .toast.success {
-        background-color: var(--figma-success);
+        background: rgba(52, 199, 89, 0.9);
         color: white;
         font-weight: 500;
       }
       
       .toast.error {
-        background-color: var(--figma-red);
+        background: rgba(255, 59, 48, 0.9);
         color: white;
         font-weight: 500;
       }
       
       .toast.info {
-        background-color: var(--figma-blue);
+        background: rgba(0, 122, 255, 0.9);
         color: white;
         font-weight: 500;
-      }
-
-      .preview-section {
-        margin-top: 16px;
-        border: 1px solid var(--figma-border);
-        border-radius: 4px;
-        background: var(--figma-bg-tertiary);
-        overflow: hidden;
-      }
-      
-      .preview-header-toggle {
-        padding: 10px 12px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        background: var(--figma-bg-secondary);
-        border-bottom: 1px solid var(--figma-border);
-        user-select: none;
-      }
-      
-      .preview-header-toggle:hover {
-        background: var(--figma-bg-tertiary);
-      }
-      
-      .preview-title {
-        font-weight: 500;
-        font-size: 0.8rem;
-      }
-      
-      .preview-count {
-        color: var(--figma-text-secondary);
-        font-size: 0.7rem;
-      }
-      
-      .toggle-icon {
-        font-size: 0.7rem;
-        color: var(--figma-text-secondary);
-        transition: transform 0.2s ease;
-      }
-      
-      .toggle-icon.open {
-        transform: rotate(180deg);
       }
     </style>
   </head>
   <body>
     <div class="header">
       <h1>Detacher</h1>
+      <br>
       <p
         style="
           font-size: 0.7rem;
-          color: var(--figma-text-secondary);
-          margin-top: 2px;
+          color: var(--ios-text-secondary);
+          margin-top: 0px;
         "
       >
         Scan and detach variables from your selection
@@ -468,7 +494,7 @@
           font-size: 0.8rem;
           font-weight: 500;
           margin-bottom: 4px;
-          color: var(--figma-text-secondary);
+          color: var(--ios-text-secondary);
         "
       >
         Variable Summary

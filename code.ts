@@ -43,7 +43,7 @@ interface DetachOptions {
 }
 
 // This file contains the main code that will be executed in Figma's plugin context
-figma.showUI(__html__, { width: 320, height:465} );
+figma.showUI(__html__, { width: 320, height: 440 });
 
 // Add selection change listener to refresh scanning
 figma.on("selectionchange", () => {
@@ -62,7 +62,7 @@ figma.on("selectionchange", () => {
 // Listen for messages from the UI
 figma.ui.onmessage = async (msg) => {
   try {
-    if (msg.type === "scan") {
+  if (msg.type === "scan") {
       console.log("Received scan request from UI");
       try {
         // Check if there's a selection
@@ -80,7 +80,7 @@ figma.ui.onmessage = async (msg) => {
             }
           });
         } else {
-          const results = await scanVariables();
+    const results = await scanVariables();
           figma.ui.postMessage({ 
             type: "scan-results", 
             payload: {
@@ -96,7 +96,7 @@ figma.ui.onmessage = async (msg) => {
           payload: { message: "Error scanning variables: " + error.message },
         });
       }
-    } else if (msg.type === "detach") {
+  } else if (msg.type === "detach") {
       console.log("Received detach request from UI", msg.payload);
       try {
         // Check if there's a selection
@@ -109,11 +109,11 @@ figma.ui.onmessage = async (msg) => {
           return;
         }
         
-        const results = await detachVariables(
-          msg.payload.bindings,
-          msg.payload.options
-        );
-        figma.ui.postMessage({ type: "detach-results", payload: results });
+    const results = await detachVariables(
+      msg.payload.bindings,
+      msg.payload.options
+    );
+    figma.ui.postMessage({ type: "detach-results", payload: results });
       } catch (error: any) {
         console.error("Error during detach:", error);
         figma.ui.postMessage({
@@ -121,8 +121,8 @@ figma.ui.onmessage = async (msg) => {
           payload: { message: "Error detaching variables: " + error.message },
         });
       }
-    } else if (msg.type === "close") {
-      figma.closePlugin();
+  } else if (msg.type === "close") {
+    figma.closePlugin();
     } else {
       console.warn("Unknown message type:", msg.type);
       figma.ui.postMessage({
@@ -347,7 +347,7 @@ async function scanVariables(): Promise<ScanResults> {
 
   console.log(`Scan complete. Found ${counts.total} variables.`);
   console.log(`Counts: ${JSON.stringify(counts)}`);
-  
+
   return { bindings, counts };
 }
 
@@ -519,10 +519,10 @@ async function detachVariables(
                   if (typeof binding.resolvedValue === "string") {
                     // Handle hex color string
                     if (binding.resolvedValue.startsWith("#")) {
-                      const hex = binding.resolvedValue.substring(1);
-                      const r = parseInt(hex.substring(0, 2), 16) / 255;
-                      const g = parseInt(hex.substring(2, 4), 16) / 255;
-                      const b = parseInt(hex.substring(4, 6), 16) / 255;
+                const hex = binding.resolvedValue.substring(1);
+                const r = parseInt(hex.substring(0, 2), 16) / 255;
+                const g = parseInt(hex.substring(2, 4), 16) / 255;
+                const b = parseInt(hex.substring(4, 6), 16) / 255;
                       console.log(`Setting color: RGB(${r}, ${g}, ${b})`);
                       
                       // Get the current fills/strokes
@@ -694,12 +694,12 @@ async function detachVariables(
               } catch (e) {
                 console.error(`Error removing variable binding: ${e}`);
                 // We'll still consider it detached if we've applied the value
-              }
             }
-            
-            detached.push(binding);
+          }
+
+          detached.push(binding);
             console.log(`Successfully detached ${binding.property} from ${binding.nodeName}`);
-          } catch (e) {
+        } catch (e) {
             console.error(`Error applying value: ${e}`);
             skipped.push(binding);
           }
