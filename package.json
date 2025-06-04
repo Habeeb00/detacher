@@ -1,0 +1,14 @@
+{
+  "name": "figma-detachr-plugin",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A Figma plugin to scan and detach variables from designs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.82.0",
+    "typescript": "^5.2.2"
+  }
+}

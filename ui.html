@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Detachr - Variable Manager</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Updated Figma-inspired color palette */
+        --figma-blue: #18a0fb;
+        --figma-blue-hover: #1994e6;
+        --figma-red: #f24822;
+        --figma-red-hover: #d93915;
+        --figma-success: #14ae5c;
+        --figma-text: #ffffff;
+        --figma-text-secondary: #b3b3b3;
+        --figma-bg: #2c2c2c;
+        --figma-bg-secondary: #383838;
+        --figma-bg-tertiary: #444444;
+        --figma-border: #444444;
+        --figma-input-bg: #222222;
+
+        /* Aliases for backward compatibility */
+        --primary: var(--figma-blue);
+        --primary-hover: var(--figma-blue-hover);
+        --danger: var(--figma-red);
+        --danger-hover: var(--figma-red-hover);
+        --success: var(--figma-success);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        color: var(--figma-text);
+        padding: 16px;
+        max-width: 100%;
+        overflow-x: hidden;
+        background-color: var(--figma-bg);
+      }
+      .header {
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: var(--figma-text);
+      }
+
+      .summary {
+        background: var(--figma-bg-secondary);
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid var(--figma-border);
+      }
+      .counts {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .count-item {
+        text-align: center;
+        padding: 6px 3px;
+        background: var(--figma-bg-tertiary);
+        border-radius: 3px;
+        transition: all 0.2s ease;
+      }
+
+      .count-item:hover {
+        background: #555555;
+      }
+
+      .count-number {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--figma-blue);
+      }
+      .count-label {
+        font-size: 0.75rem;
+        color: var(--figma-text-secondary);
+      }
+      .options {
+        margin-bottom: 20px;
+      }
+      .checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        background: var(--figma-bg-tertiary);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+      }
+
+      .checkbox-item:hover {
+        background: #555555;
+      }
+
+      /* Figma-style checkbox */
+      .checkbox-item input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        cursor: pointer;
+        position: relative;
+        appearance: none;
+        border: 1px solid #777777;
+        border-radius: 3px;
+        outline: none;
+        transition: all 0.2s ease;
+        vertical-align: middle;
+        background-color: var(--figma-input-bg);
+      }
+
+      .checkbox-item input[type="checkbox"]:checked {
+        background-color: var(--figma-blue);
+        border-color: var(--figma-blue);
+      }
+
+      .checkbox-item input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 1px;
+        width: 5px;
+        height: 7px;
+        border: solid white;
+        border-width: 0 1px 1px 0;
+        transform: rotate(45deg);
+      }
+      .preview-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        padding: 12px;
+        background: rgba(24, 160, 251, 0.1);
+        border-radius: 4px;
+        font-size: 0.8rem;
+      }
+
+      .preview-toggle input[type="checkbox"] {
+        width: 12px;
+        height: 12px;
+        cursor: pointer;
+        position: relative;
+        appearance: none;
+        border: 1px solid #777777;
+        border-radius: 2px;
+        outline: none;
+        transition: all 0.2s ease;
+        vertical-align: middle;
+        background-color: var(--figma-input-bg);
+      }
+
+      .preview-toggle input[type="checkbox"]:checked {
+        background-color: var(--figma-blue);
+        border-color: var(--figma-blue);
+      }
+
+      .preview-toggle input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 1px;
+        width: 5px;
+        height: 7px;
+        border: solid white;
+        border-width: 0 1px 1px 0;
+        transform: rotate(45deg);
+      }
+
+      .preview-list {
+        margin-top: 16px;
+        max-height: 100px;
+        overflow-y: auto;
+        border: 1px solid var(--figma-border);
+        border-radius: 4px;
+        background: var(--figma-bg-tertiary);
+      }
+
+      .preview-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .preview-list::-webkit-scrollbar-track {
+        background: var(--figma-bg);
+        border-radius: 2px;
+      }
+
+      .preview-list::-webkit-scrollbar-thumb {
+        background-color: #666666;
+        border-radius: 2px;
+      }
+      .preview-item {
+        padding: 4px 6px;
+        border-bottom: 1px solid var(--figma-border);
+        font-size: 0.7rem;
+      }
+
+      .preview-item:last-child {
+        border-bottom: none;
+      }
+
+      .preview-item .before {
+        color: var(--figma-red);
+      }
+
+      .preview-item .after {
+        color: var(--figma-success);
+        margin-left: 8px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 5px 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        margin-top: 4px;
+      }
+
+      .button-primary {
+        background: var(--figma-blue);
+        color: white;
+      }
+
+      .button-primary:hover {
+        background: var(--figma-blue-hover);
+      }
+      .button-primary:active {
+        opacity: 0.9;
+      }
+
+      .button-danger {
+        background: var(--figma-red);
+        color: white;
+      }
+
+      .button-danger:hover {
+        background: var(--figma-red-hover);
+      }
+
+      .button-danger:active {
+        opacity: 0.9;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 8px 16px;
+        background: #222222;
+        color: white;
+        border-radius: 2px;
+        font-size: 0.7rem;
+        opacity: 0;
+        transition: all 0.2s ease;
+        pointer-events: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-4px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Detachr</h1>
+      <p
+        style="
+          font-size: 0.7rem;
+          color: var(--figma-text-secondary);
+          margin-top: 2px;
+        "
+      >
+        Scan and detach variables from your selection
+      </p>
+    </div>
+
+    <div class="summary">
+      <h2
+        style="
+          font-size: 0.8rem;
+          font-weight: 500;
+          margin-bottom: 4px;
+          color: var(--figma-text-secondary);
+        "
+      >
+        Variable Summary
+      </h2>
+      <div class="counts">
+        <div class="count-item">
+          <div class="count-number" id="colorCount">0</div>
+          <div class="count-label">Colors</div>
+        </div>
+        <div class="count-item">
+          <div class="count-number" id="textCount">0</div>
+          <div class="count-label">Text</div>
+        </div>
+        <div class="count-item">
+          <div class="count-number" id="numberCount">0</div>
+          <div class="count-label">Numbers</div>
+        </div>
+        <div class="count-item">
+          <div class="count-number" id="spacingCount">0</div>
+          <div class="count-label">Spacing</div>
+        </div>
+        <div class="count-item">
+          <div class="count-number" id="booleanCount">0</div>
+          <div class="count-label">Boolean</div>
+        </div>
+        <div class="count-item">
+          <div class="count-number" id="totalCount">0</div>
+          <div class="count-label">Total</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="options">
+      <div class="checkbox-group">
+        <label class="checkbox-item">
+          <input type="checkbox" id="colorToggle" checked />
+          Colors
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="textToggle" />
+          Text
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="numberToggle" checked />
+          Numbers
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="spacingToggle" checked />
+          Spacing
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="booleanToggle" />
+          Boolean
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="otherToggle" />
+          Other
+        </label>
+      </div>
+
+      <div class="preview-toggle">
+        <input type="checkbox" id="dryRunToggle" checked />
+        <label for="dryRunToggle">Preview Mode (Dry Run)</label>
+      </div>
+    </div>
+
+    <div id="previewList" class="preview-list" style="display: none"></div>
+
+    <button id="detachButton" class="button button-primary">
+      Preview Changes
+    </button>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+      // UI Event Handlers and State Management
+      let currentBindings = [];
+      let isDryRun = true;
+      let hasPreviewedChanges = false;
+
+      // Store the full counts from the scan
+      let fullCounts = {
+        color: 0,
+        text: 0,
+        number: 0,
+        spacing: 0,
+        boolean: 0,
+        other: 0,
+        total: 0
+      };
+
+      // Initialize UI
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("UI initialized, sending scan request");
+        
+        // Initial scan
+        parent.postMessage({ pluginMessage: { type: "scan" } }, "*");
+        showToast("Scanning for variables...");
+
+        // Setup event listeners
+        setupEventListeners();
+      });
+
+      function setupEventListeners() {
+        // Detach button
+        const detachButton = document.getElementById("detachButton");
+        detachButton.addEventListener("click", handleDetachClick);
+
+        // Dry run toggle
+        const dryRunToggle = document.getElementById("dryRunToggle");
+        dryRunToggle.addEventListener("change", (e) => {
+          isDryRun = e.target.checked;
+          updateDetachButtonText();
+        });
+        
+        // Set up listeners for all checkbox toggles
+        const checkboxToggles = [
+          "colorToggle", 
+          "textToggle", 
+          "numberToggle", 
+          "spacingToggle", 
+          "booleanToggle", 
+          "otherToggle"
+        ];
+        
+        checkboxToggles.forEach(toggleId => {
+          const toggle = document.getElementById(toggleId);
+          if (toggle) {
+            toggle.addEventListener("change", () => {
+              console.log(`${toggleId} changed to ${toggle.checked}`);
+              // Update the counts display when checkboxes change
+              updateFilteredCounts();
+              // If we have previewed changes, refresh the preview
+              if (hasPreviewedChanges) {
+                handleDetachClick();
+              }
+            });
+          }
+        });
+      }
+
+      function updateDetachButtonText() {
+        const detachButton = document.getElementById("detachButton");
+        
+        if (isDryRun) {
+          detachButton.textContent = "Preview Changes";
+          detachButton.className = "button button-primary";
+          hasPreviewedChanges = false;
+          console.log("Button updated: Preview Changes mode");
+        } else {
+          if (hasPreviewedChanges) {
+            detachButton.textContent = "Detach Variables";
+            detachButton.className = "button button-danger";
+            console.log("Button updated: Detach Variables mode");
+          } else {
+            detachButton.textContent = "Preview First";
+            detachButton.className = "button button-primary";
+            console.log("Button updated: Preview First mode");
+          }
+        }
+      }
+
+      function getSelectedOptions() {
+        const options = {
+          color: document.getElementById("colorToggle").checked,
+          text: document.getElementById("textToggle").checked,
+          number: document.getElementById("numberToggle").checked,
+          spacing: document.getElementById("spacingToggle").checked,
+          boolean: document.getElementById("booleanToggle").checked,
+          other: document.getElementById("otherToggle").checked,
+          dryRun: isDryRun,
+        };
+        console.log("Current options:", options);
+        return options;
+      }
+
+      function updateFilteredCounts() {
+        // Get current checkbox states
+        const options = getSelectedOptions();
+        
+        // Calculate filtered counts based on checkbox selection
+        const filteredCounts = {
+          color: options.color ? fullCounts.color : 0,
+          text: options.text ? fullCounts.text : 0,
+          number: options.number ? fullCounts.number : 0,
+          spacing: options.spacing ? fullCounts.spacing : 0,
+          boolean: options.boolean ? fullCounts.boolean : 0,
+          other: options.other ? fullCounts.other : 0,
+          total: 0
+        };
+        
+        // Calculate total from selected types
+        filteredCounts.total = Object.keys(filteredCounts)
+          .filter(key => key !== 'total')
+          .reduce((sum, key) => sum + filteredCounts[key], 0);
+        
+        // Update the UI with filtered counts
+        updateCountsDisplay(filteredCounts);
+      }
+
+      function updateCounts(counts) {
+        console.log("Updating counts:", counts);
+        // Store the full counts
+        fullCounts = { ...counts };
+        
+        // Update the display with filtered counts based on current selection
+        updateFilteredCounts();
+      }
+      
+      function updateCountsDisplay(counts) {
+        Object.entries(counts).forEach(([key, value]) => {
+          const element = document.getElementById(`${key}Count`);
+          if (element) {
+            element.textContent = String(value);
+          }
+        });
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 3000);
+      }
+
+      function updatePreviewList(detached) {
+        const previewList = document.getElementById("previewList");
+        previewList.style.display = detached.length > 0 ? "block" : "none";
+
+        if (detached.length > 0) {
+          previewList.innerHTML = detached
+            .map(
+              (item) => `
+          <div class="preview-item">
+            <div class="before">${item.nodeName}: ${item.currentVariable}</div>
+            <div class="after">→ ${item.resolvedValue}</div>
+          </div>
+        `
+            )
+            .join("");
+        }
+      }
+
+      function handleDetachClick() {
+        const options = getSelectedOptions();
+        console.log("Detach button clicked. Current button text:", document.getElementById("detachButton").textContent);
+        console.log("isDryRun:", isDryRun, "hasPreviewedChanges:", hasPreviewedChanges);
+        
+        // If not in dry run mode and haven't previewed, force a preview first
+        if (!isDryRun && !hasPreviewedChanges) {
+          options.dryRun = true;
+          showToast("Preview required before detaching. Generating preview...");
+          console.log("Forcing preview before detachment. Updated options:", options);
+        }
+        
+        console.log("Sending detach request with options:", options);
+        
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "detach",
+              payload: {
+                bindings: currentBindings,
+                options,
+              },
+            },
+          },
+          "*"
+        );
+        
+        if (options.dryRun) {
+          showToast("Generating preview...");
+          console.log("Preview mode active. Generating preview...");
+        } else {
+          showToast("Detaching variables...");
+          console.log("Detachment mode active. Detaching variables...");
+        }
+      }
+
+      // Listen for messages from the plugin code
+      window.onmessage = (event) => {
+        const message = event.data.pluginMessage;
+        console.log("Received message:", message);
+
+        if (!message) {
+          console.warn("Received empty message");
+          return;
+        }
+
+        switch (message.type) {
+          case "scan-results":
+            console.log("Received scan results:", message.payload);
+            currentBindings = message.payload.bindings;
+            updateCounts(message.payload.counts);
+            
+            if (message.payload.counts.total === 0) {
+              showToast("No variables found. Try selecting different elements.");
+            } else {
+              showToast(`Found ${message.payload.counts.total} variables.`);
+            }
+            break;
+
+          case "detach-results":
+            console.log("Received detach results:", message.payload);
+            console.log("Current state - isDryRun:", isDryRun, "hasPreviewedChanges:", hasPreviewedChanges);
+            updatePreviewList(message.payload.detached);
+            
+            if (message.payload.dryRun) {
+              showToast(`Preview generated for ${message.payload.detached.length} variables.`);
+              hasPreviewedChanges = true;
+              // After preview, toggle to detach mode
+              isDryRun = false;
+              console.log("Preview completed. Updated state - isDryRun:", isDryRun, "hasPreviewedChanges:", hasPreviewedChanges);
+              updateDetachButtonText();
+            } else {
+              showToast(
+                `${message.payload.counts.total} variables detached successfully!`
+              );
+              console.log("Detachment successful. Refreshing scan...");
+              // Reset preview state after successful detach
+              hasPreviewedChanges = false;
+              // Reset to preview mode after detaching
+              isDryRun = true;
+              console.log("Detachment completed. Updated state - isDryRun:", isDryRun, "hasPreviewedChanges:", hasPreviewedChanges);
+              updateDetachButtonText();
+              
+              // Refresh scan after detaching
+              parent.postMessage({ pluginMessage: { type: "scan" } }, "*");
+            }
+            break;
+
+          case "error":
+            console.error("Error from plugin:", message.payload);
+            showToast(`Error: ${message.payload.message}`);
+            break;
+
+          case "show-about":
+            // Handle about dialog
+            break;
+            
+          default:
+            console.warn("Unknown message type:", message.type);
+        }
+      };
+    </script>
+  </body>
+</html>

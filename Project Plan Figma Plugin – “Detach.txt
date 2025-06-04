@@ -1,0 +1,40 @@
+Project Plan: Figma Plugin – “Detachr”
+--------------------------------------
+
+1. MVP Scope (Updated)
+----------------------
+
+Core Features (v1):
+
+1. Smart Variable Scanner
+   - Scan selected layers/frames for all variable bindings
+   - Categorize: 🎨 Color · 🔤 Text · 🔢 Number · 📐 Spacing
+   - Show a summary panel (counts + optional list)
+
+2. One-Click Detach by Type
+   - Detach all variables or selected types
+   - Checkbox UI for: [x] Color, [ ] Text, [x] Number, etc.
+   - Replace each variable with its resolved/static value
+     (e.g., variable → hex code, text token → plain string)
+
+3. Dry Run / Preview Mode
+   - Toggle “Preview Mode” before detaching
+   - Show “Before → After” panel for each affected item
+   - Confirm detachment only after review
+   - Keep option to "Apply" or "Cancel"
+
+Section            | Details
+-------------------|--------------------------------------------------
+📊 Variable Summary | Clean dashboard showing count by type
+✅ Type Selector    | Checkboxes to choose what to detach
+🔍 Preview Toggle   | “Dry Run” switch on top of UI
+👁️ Preview Panel   | Collapsible section: before → after list
+🚀 Confirm Button   | Only visible when preview is active
+✅ Toast            | "18 variables detached successfully!"
+
+4. UX Safety Features
+----------------------
+
+- Show warning before destructive actions
+- Option to export summary/changes as JSON
+- “Dry Run” is on by default
