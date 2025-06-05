@@ -7,7 +7,7 @@ const VariableTypes = {
     other: "other",
 };
 // This file contains the main code that will be executed in Figma's plugin context
-figma.showUI(__html__, { width: 320, height: 465 });
+figma.showUI(__html__, { width: 320, height: 440 });
 // Add selection change listener to refresh scanning
 figma.on("selectionchange", () => {
     console.log("Selection changed, refreshing scan");
@@ -170,8 +170,16 @@ async function scanVariables() {
                                 }
                             }
                             else if (property === "characters") {
-                                variableType = VariableTypes.text;
-                                resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                // Check if the resolved value is a number first
+                                if (resolvedVariable &&
+                                    typeof resolvedVariable.value === "number") {
+                                    variableType = VariableTypes.number;
+                                    resolvedValue = Number(resolvedVariable.value);
+                                }
+                                else {
+                                    variableType = VariableTypes.text;
+                                    resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                }
                             }
                             else if (property.includes("spacing") ||
                                 property.includes("padding") ||
@@ -180,14 +188,14 @@ async function scanVariables() {
                                 resolvedValue = Number((resolvedVariable && resolvedVariable.value) || 0);
                             }
                             else if (resolvedVariable &&
-                                typeof resolvedVariable.value === "number") {
-                                variableType = VariableTypes.number;
-                                resolvedValue = Number(resolvedVariable.value);
-                            }
-                            else if (resolvedVariable &&
                                 typeof resolvedVariable.value === "boolean") {
                                 variableType = VariableTypes.other;
                                 resolvedValue = Boolean(resolvedVariable.value);
+                            }
+                            else if (resolvedVariable &&
+                                typeof resolvedVariable.value === "number") {
+                                variableType = VariableTypes.number;
+                                resolvedValue = Number(resolvedVariable.value);
                             }
                             else {
                                 variableType = VariableTypes.other;

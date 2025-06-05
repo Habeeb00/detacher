@@ -227,10 +227,19 @@ async function scanVariables(): Promise<ScanResults> {
                   );
                 }
               } else if (property === "characters") {
-                variableType = VariableTypes.text;
-                resolvedValue = String(
-                  (resolvedVariable && resolvedVariable.value) || ""
-                );
+                // Check if the resolved value is a number first
+                if (
+                  resolvedVariable &&
+                  typeof resolvedVariable.value === "number"
+                ) {
+                  variableType = VariableTypes.number;
+                  resolvedValue = Number(resolvedVariable.value);
+                } else {
+                  variableType = VariableTypes.text;
+                  resolvedValue = String(
+                    (resolvedVariable && resolvedVariable.value) || ""
+                  );
+                }
               } else if (
                 property.includes("spacing") ||
                 property.includes("padding") ||
@@ -242,16 +251,16 @@ async function scanVariables(): Promise<ScanResults> {
                 );
               } else if (
                 resolvedVariable &&
-                typeof resolvedVariable.value === "number"
-              ) {
-                variableType = VariableTypes.number;
-                resolvedValue = Number(resolvedVariable.value);
-              } else if (
-                resolvedVariable &&
                 typeof resolvedVariable.value === "boolean"
               ) {
                 variableType = VariableTypes.other;
                 resolvedValue = Boolean(resolvedVariable.value);
+              } else if (
+                resolvedVariable &&
+                typeof resolvedVariable.value === "number"
+              ) {
+                variableType = VariableTypes.number;
+                resolvedValue = Number(resolvedVariable.value);
               } else {
                 variableType = VariableTypes.other;
                 resolvedValue = String(
