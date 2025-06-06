@@ -1,21 +1,11 @@
 {
   "name": "Detachr",
-  "id": "figma-detachr-plugin",
+  "id": "1512513514263053398",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma"],
-  "menu": [
-    {
-      "name": "Scan Variables",
-      "command": "scan-variables"
-    },
-    {
-      "separator": true
-    },
-    {
-      "name": "About Detachr",
-      "command": "about"
-    }
-  ]
+  "editorType": ["figma", "figjam", "dev", "slides"],
+  "permissions": ["currentuser", "activeusers"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] }
 }

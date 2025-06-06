@@ -193,7 +193,7 @@ async function scanVariables(): Promise<ScanResults> {
 
           // Try to determine variable type and resolved value
           try {
-            const variable = figma.variables.getVariableById(binding.id);
+            const variable = await figma.variables.getVariableByIdAsync(binding.id);
             if (variable) {
               console.log(`Variable found: ${variable.name}`);
               const resolvedVariable = variable.resolveForConsumer(node);
