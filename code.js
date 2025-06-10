@@ -7,7 +7,7 @@ const VariableTypes = {
     other: "other",
 };
 // This file contains the main code that will be executed in Figma's plugin context
-figma.showUI(__html__, { width: 320, height: 440 });
+figma.showUI(__html__, { width: 320, height: 465 });
 // Add selection change listener to refresh scanning
 figma.on("selectionchange", () => {
     console.log("Selection changed, refreshing scan");
@@ -64,6 +64,17 @@ figma.ui.onmessage = async (msg) => {
                         payload: { message: "Please select frames, layers, or components first." }
                     });
                     return;
+                }
+                // Check if we're in a dynamic page
+                const isDynamicPage = figma.currentPage.type === "PAGE" &&
+                    ("documentAccess" in figma.currentPage && figma.currentPage.documentAccess === "dynamic-page");
+                if (isDynamicPage) {
+                    console.log("Warning: Detected dynamic page context. Using special handling.");
+                    // For dynamic pages, we need to use a different approach
+                    figma.ui.postMessage({
+                        type: "error",
+                        payload: { message: "Dynamic page detected. Some variables might not detach correctly. Please try using component instances instead of components directly." }
+                    });
                 }
                 const results = await detachVariables(msg.payload.bindings, msg.payload.options);
                 figma.ui.postMessage({ type: "detach-results", payload: results });
@@ -132,6 +143,74 @@ async function scanVariables() {
         if ("boundVariables" in node && node.boundVariables) {
             const boundVars = node.boundVariables;
             console.log(`Found node with bound variables: ${node.name}`);
+            // Log all bound variable properties to help with debugging
+            console.log(`All bound variable properties: ${JSON.stringify(Object.keys(boundVars))}`);
+            // Special handling for fills and strokes to detect nested properties
+            if ("fills" in node) {
+                const fills = node.fills;
+                if (fills !== figma.mixed) {
+                    console.log(`Node has fills property with ${Array.isArray(fills) ? fills.length : 0} fills`);
+                    // Check if any fills are bound to variables
+                    if (Array.isArray(fills)) {
+                        for (let i = 0; i < fills.length; i++) {
+                            const fill = fills[i];
+                            if (fill.type === "SOLID") {
+                                console.log(`Checking fill ${i}: SOLID color`);
+                                // Check if this specific fill's color is bound to a variable
+                                const fillColorPath = `fills.${i}.color`;
+                                if (boundVars[fillColorPath]) {
+                                    console.log(`Found variable binding for ${fillColorPath}`);
+                                }
+                            }
+                            else if (fill.type.includes("GRADIENT")) {
+                                console.log(`Checking fill ${i}: ${fill.type}`);
+                                // Check gradient stops
+                                if (fill.gradientStops) {
+                                    for (let j = 0; j < fill.gradientStops.length; j++) {
+                                        const stopPath = `fills.${i}.gradientStops.${j}.color`;
+                                        if (boundVars[stopPath]) {
+                                            console.log(`Found variable binding for gradient stop: ${stopPath}`);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Similar handling for strokes
+            if ("strokes" in node) {
+                const strokes = node.strokes;
+                if (strokes !== figma.mixed) {
+                    console.log(`Node has strokes property with ${Array.isArray(strokes) ? strokes.length : 0} strokes`);
+                    // Check if any strokes are bound to variables
+                    if (Array.isArray(strokes)) {
+                        for (let i = 0; i < strokes.length; i++) {
+                            const stroke = strokes[i];
+                            if (stroke.type === "SOLID") {
+                                console.log(`Checking stroke ${i}: SOLID color`);
+                                // Check if this specific stroke's color is bound to a variable
+                                const strokeColorPath = `strokes.${i}.color`;
+                                if (boundVars[strokeColorPath]) {
+                                    console.log(`Found variable binding for ${strokeColorPath}`);
+                                }
+                            }
+                            else if (stroke.type.includes("GRADIENT")) {
+                                console.log(`Checking stroke ${i}: ${stroke.type}`);
+                                // Check gradient stops
+                                if (stroke.gradientStops) {
+                                    for (let j = 0; j < stroke.gradientStops.length; j++) {
+                                        const stopPath = `strokes.${i}.gradientStops.${j}.color`;
+                                        if (boundVars[stopPath]) {
+                                            console.log(`Found variable binding for gradient stop: ${stopPath}`);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             // Loop through all bound variables
             for (const property in boundVars) {
                 const binding = boundVars[property];
@@ -151,8 +230,17 @@ async function scanVariables() {
                                 property.includes("stroke") ||
                                 property.includes("background") ||
                                 property.includes("color") ||
-                                property.endsWith("StyleId")) {
+                                property.endsWith("StyleId") ||
+                                // Add more specific patterns for fill and stroke colors
+                                property.includes("fills.") ||
+                                property.includes("strokes.") ||
+                                property.includes("paint") ||
+                                property.includes("gradient") ||
+                                property.includes("border") ||
+                                property.includes("shadow") ||
+                                property.includes("effect")) {
                                 variableType = VariableTypes.color;
+                                console.log(`Identified color variable for property: ${property}`);
                                 // For colors, convert to hex
                                 if (resolvedVariable &&
                                     typeof resolvedVariable.value === "object" &&
@@ -314,9 +402,19 @@ async function detachVariables(bindings, options) {
                 // Get all nodes that need font loading
                 const textNodes = [];
                 for (const binding of textBindings) {
-                    const node = figma.getNodeById(binding.nodeId);
-                    if (node && "fontName" in node) {
-                        textNodes.push(node);
+                    try {
+                        console.log(`Getting node for text binding: ${binding.nodeId}`);
+                        const node = await figma.getNodeByIdAsync(binding.nodeId);
+                        if (node && "fontName" in node) {
+                            console.log(`Found text node: ${node.name}`);
+                            textNodes.push(node);
+                        }
+                        else {
+                            console.warn(`Node not found or not a text node: ${binding.nodeId}`);
+                        }
+                    }
+                    catch (e) {
+                        console.error(`Error getting node for text binding: ${e}`);
                     }
                 }
                 // Load fonts for all text nodes
@@ -346,7 +444,17 @@ async function detachVariables(bindings, options) {
             try {
                 console.log(`Starting actual detachment for ${binding.nodeName}, property: ${binding.property}`);
                 // Actual detachment logic
-                const node = figma.getNodeById(binding.nodeId);
+                let node;
+                try {
+                    console.log(`Getting node by ID: ${binding.nodeId}`);
+                    node = await figma.getNodeByIdAsync(binding.nodeId);
+                    console.log(`Node found: ${node ? node.name : 'null'}, type: ${node ? node.type : 'unknown'}`);
+                }
+                catch (e) {
+                    console.error(`Error getting node by ID: ${e}`);
+                    skipped.push(binding);
+                    continue;
+                }
                 if (!node) {
                     console.warn(`Node not found: ${binding.nodeId}`);
                     skipped.push(binding);
@@ -408,9 +516,32 @@ async function detachVariables(bindings, options) {
                             const isStroke = binding.property.includes("stroke");
                             const propertyName = isStroke ? "strokes" : "fills";
                             console.log(`Handling ${isStroke ? "stroke" : "fill"} property: ${binding.property}`);
+                            console.log(`Node type: ${node.type}, has boundVariables: ${!!node.boundVariables}`);
+                            if (node.boundVariables) {
+                                console.log(`All bound variables: ${JSON.stringify(Object.keys(node.boundVariables))}`);
+                            }
+                            // Try to use the utility function first
+                            if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                                try {
+                                    console.log(`Using utility function for color detachment`);
+                                    const success = await detachColorVariable(node, binding.property, binding.resolvedValue);
+                                    if (success) {
+                                        console.log(`Successfully detached color variable using utility function`);
+                                        continue; // Skip the rest of the loop iteration
+                                    }
+                                    else {
+                                        console.log(`Utility function failed, falling back to standard approach`);
+                                    }
+                                }
+                                catch (e) {
+                                    console.error(`Error using utility function: ${e}`);
+                                    console.log(`Falling back to standard approach`);
+                                }
+                            }
                             // Check if node has the property
                             if (propertyName in node) {
                                 const currentValue = node[propertyName];
+                                console.log(`Current ${propertyName}: ${JSON.stringify(currentValue)}`);
                                 // Skip if the property is figma.mixed
                                 if (currentValue === figma.mixed) {
                                     console.warn(`${propertyName} is mixed, skipping`);
@@ -454,14 +585,34 @@ async function detachVariables(bindings, options) {
                                                 };
                                                 paintArray[paintIndex] = Object.assign(Object.assign({}, paint), { color: newColor });
                                                 console.log(`Updated solid color at index ${paintIndex}`);
+                                                // Try to remove the variable binding specifically for this color
+                                                try {
+                                                    // The binding for a solid color might be at "fills.0.color"
+                                                    const specificColorBinding = `${propertyName}.${paintIndex}.color`;
+                                                    console.log(`Attempting to remove specific color binding: ${specificColorBinding}`);
+                                                    if ("setBoundVariable" in node) {
+                                                        node.setBoundVariable(specificColorBinding, null);
+                                                        console.log(`Removed specific color binding: ${specificColorBinding}`);
+                                                    }
+                                                }
+                                                catch (e) {
+                                                    console.log(`Note: Could not remove specific color binding: ${e}`);
+                                                    // This is just an additional attempt, so we continue even if it fails
+                                                }
                                             }
-                                            else if (paint.type === "GRADIENT_LINEAR" || paint.type === "GRADIENT_RADIAL" || paint.type === "GRADIENT_ANGULAR" || paint.type === "GRADIENT_DIAMOND") {
+                                            else if (paint.type.includes("GRADIENT")) {
                                                 // For gradients, we need to determine which color stop to update
                                                 const stopIndex = binding.property.includes("gradientStops") ?
                                                     parseInt(((_a = binding.property.match(/gradientStops(\d+)/)) === null || _a === void 0 ? void 0 : _a[1]) || "0") : 0;
-                                                if (paint.gradientStops && stopIndex < paint.gradientStops.length) {
+                                                // Type guard for gradient paints
+                                                if (!("gradientStops" in paint)) {
+                                                    console.warn(`Paint does not have gradientStops property`);
+                                                    continue;
+                                                }
+                                                const gradientPaint = paint;
+                                                if (gradientPaint.gradientStops && stopIndex < gradientPaint.gradientStops.length) {
                                                     // Create a new gradient stops array with the updated color
-                                                    const newGradientStops = [...paint.gradientStops];
+                                                    const newGradientStops = [...gradientPaint.gradientStops];
                                                     const originalStopColor = newGradientStops[stopIndex].color;
                                                     const newStopColor = {
                                                         r, g, b,
@@ -469,7 +620,7 @@ async function detachVariables(bindings, options) {
                                                     };
                                                     newGradientStops[stopIndex] = Object.assign(Object.assign({}, newGradientStops[stopIndex]), { color: newStopColor });
                                                     // Create a new paint object with the updated gradient stops
-                                                    paintArray[paintIndex] = Object.assign(Object.assign({}, paint), { gradientStops: newGradientStops });
+                                                    paintArray[paintIndex] = Object.assign(Object.assign({}, gradientPaint), { gradientStops: newGradientStops });
                                                     console.log(`Updated gradient stop ${stopIndex} in ${paint.type}`);
                                                 }
                                                 else {
@@ -481,8 +632,14 @@ async function detachVariables(bindings, options) {
                                                 continue;
                                             }
                                             // Apply the updated paints back to the node
-                                            node[propertyName] = paintArray;
-                                            console.log(`Applied updated ${propertyName}`);
+                                            try {
+                                                console.log(`Applying updated ${propertyName} to node`);
+                                                node[propertyName] = paintArray;
+                                                console.log(`Applied updated ${propertyName}`);
+                                            }
+                                            catch (e) {
+                                                console.error(`Error applying updated ${propertyName}: ${e}`);
+                                            }
                                         }
                                         else {
                                             console.warn(`Unsupported color format: ${binding.resolvedValue}, skipping`);
@@ -554,15 +711,74 @@ async function detachVariables(bindings, options) {
                             try {
                                 // Use setBoundVariable with null to remove the binding
                                 if ("setBoundVariable" in node) {
-                                    node.setBoundVariable(binding.property, null);
+                                    // For color properties, we need to handle them specially
+                                    if (binding.variableType === VariableTypes.color) {
+                                        // For fill and stroke properties, we need to identify the specific binding property
+                                        if (binding.property.includes("fill") || binding.property.includes("stroke")) {
+                                            console.log(`Removing color binding for ${binding.property}`);
+                                            // The binding property might be something like "fills.0.color"
+                                            // Check if it's a nested property
+                                            if (binding.property.includes(".")) {
+                                                // Handle nested properties like "fills.0.color"
+                                                console.log(`Handling nested color property: ${binding.property}`);
+                                                node.setBoundVariable(binding.property, null);
+                                            }
+                                            else if (binding.property === "fills" || binding.property === "strokes") {
+                                                // Handle direct fills/strokes property
+                                                console.log(`Handling direct ${binding.property} property`);
+                                                node.setBoundVariable(binding.property, null);
+                                            }
+                                            else if (binding.property.endsWith("StyleId")) {
+                                                // Handle style properties
+                                                console.log(`Handling style property: ${binding.property}`);
+                                                node.setBoundVariable(binding.property, null);
+                                                // Also set the style ID to empty string to ensure it's removed
+                                                node[binding.property] = "";
+                                            }
+                                            else {
+                                                // For other fill/stroke related properties
+                                                console.log(`Handling other color property: ${binding.property}`);
+                                                node.setBoundVariable(binding.property, null);
+                                            }
+                                        }
+                                        else {
+                                            // For other color properties
+                                            console.log(`Removing other color binding: ${binding.property}`);
+                                            node.setBoundVariable(binding.property, null);
+                                        }
+                                    }
+                                    else {
+                                        // For non-color properties
+                                        node.setBoundVariable(binding.property, null);
+                                    }
                                     console.log(`Binding removed for property: ${binding.property} using setBoundVariable(null)`);
                                 }
                                 else {
                                     // Alternative approach: try to set the actual value without the variable
                                     console.log(`Node does not have setBoundVariable method, trying alternative approach`);
-                                    // For text nodes, we've already set the characters above
-                                    // For other properties, we might need to handle them case by case
-                                    // This is a fallback and might not work for all cases
+                                    // Try a different approach for removing the binding
+                                    try {
+                                        // For text nodes, we've already set the characters above
+                                        if (binding.property === "characters" && "characters" in node) {
+                                            // Already handled
+                                            console.log("Text value already applied");
+                                        }
+                                        // For color properties, try to set the property directly
+                                        else if (binding.variableType === VariableTypes.color) {
+                                            console.log("Color value already applied");
+                                        }
+                                        // For other properties, try a generic approach
+                                        else {
+                                            console.log(`Attempting to set property directly: ${binding.property}`);
+                                            if (binding.property in node) {
+                                                node[binding.property] = binding.resolvedValue;
+                                                console.log(`Set property directly: ${binding.property}`);
+                                            }
+                                        }
+                                    }
+                                    catch (e) {
+                                        console.error(`Error in alternative approach: ${e}`);
+                                    }
                                     console.warn(`Could not remove binding for property: ${binding.property}`);
                                     // We'll still consider it detached since we've applied the value
                                 }
@@ -607,4 +823,129 @@ async function detachVariables(bindings, options) {
         dryRun: options.dryRun,
         counts,
     };
+}
+// Utility function to help with color detachment
+async function detachColorVariable(node, property, colorValue) {
+    console.log(`Attempting to detach color variable for property: ${property}`);
+    try {
+        // Check if the property is a nested property like "fills.0.color"
+        if (property.includes(".")) {
+            const parts = property.split(".");
+            const mainProperty = parts[0]; // "fills" or "strokes"
+            if (mainProperty !== "fills" && mainProperty !== "strokes") {
+                console.warn(`Unsupported main property: ${mainProperty}`);
+                return false;
+            }
+            // Make sure node has the property
+            if (!(mainProperty in node)) {
+                console.warn(`Node does not have property: ${mainProperty}`);
+                return false;
+            }
+            // Get the current value
+            const currentValue = node[mainProperty];
+            if (currentValue === figma.mixed) {
+                console.warn(`${mainProperty} is mixed, cannot detach`);
+                return false;
+            }
+            // Parse the color value
+            if (!colorValue.startsWith("#")) {
+                console.warn(`Color value is not in hex format: ${colorValue}`);
+                return false;
+            }
+            const hex = colorValue.substring(1);
+            const r = parseInt(hex.substring(0, 2), 16) / 255;
+            const g = parseInt(hex.substring(2, 4), 16) / 255;
+            const b = parseInt(hex.substring(4, 6), 16) / 255;
+            // Create a copy of the current value
+            const paintArray = JSON.parse(JSON.stringify(currentValue));
+            // Determine the index
+            let index = 0;
+            if (parts.length > 1 && !isNaN(parseInt(parts[1]))) {
+                index = parseInt(parts[1]);
+            }
+            // Check if the index is valid
+            if (index >= paintArray.length) {
+                console.warn(`Index ${index} is out of bounds for ${mainProperty}`);
+                return false;
+            }
+            // Update the color
+            const paint = paintArray[index];
+            if (paint.type === "SOLID") {
+                // For solid colors
+                const originalColor = paint.color;
+                const newColor = {
+                    r, g, b,
+                    a: 'a' in originalColor ? originalColor.a : 1
+                };
+                paintArray[index] = Object.assign(Object.assign({}, paint), { color: newColor });
+            }
+            else if (paint.type.includes("GRADIENT")) {
+                // For gradient stops
+                // Type guard for gradient paints
+                if (!("gradientStops" in paint)) {
+                    console.warn(`Paint does not have gradientStops property`);
+                    return false;
+                }
+                const gradientPaint = paint;
+                // Check if we're dealing with a gradient stop
+                if (parts.length > 3 && parts[2] === "gradientStops") {
+                    const stopIndex = parseInt(parts[3] || "0");
+                    if (stopIndex >= gradientPaint.gradientStops.length) {
+                        console.warn(`Invalid gradient stop index: ${stopIndex}`);
+                        return false;
+                    }
+                    const newGradientStops = [...gradientPaint.gradientStops];
+                    const originalStopColor = newGradientStops[stopIndex].color;
+                    const newStopColor = {
+                        r, g, b,
+                        a: 'a' in originalStopColor ? originalStopColor.a : 1
+                    };
+                    newGradientStops[stopIndex] = Object.assign(Object.assign({}, newGradientStops[stopIndex]), { color: newStopColor });
+                    paintArray[index] = Object.assign(Object.assign({}, gradientPaint), { gradientStops: newGradientStops });
+                }
+                else {
+                    // Just update the entire gradient
+                    console.log(`Updating entire gradient`);
+                    // No specific changes needed for the gradient itself
+                }
+            }
+            else {
+                console.warn(`Unsupported paint type: ${paint.type}`);
+                return false;
+            }
+            // Apply the updated paints
+            try {
+                node[mainProperty] = paintArray;
+                console.log(`Successfully updated ${mainProperty}`);
+                // Try to remove the binding
+                if ("setBoundVariable" in node) {
+                    node.setBoundVariable(property, null);
+                    console.log(`Removed binding for ${property}`);
+                }
+                return true;
+            }
+            catch (e) {
+                console.error(`Error applying updated ${mainProperty}: ${e}`);
+                return false;
+            }
+        }
+        else {
+            // Handle direct properties like "fills" or "strokes"
+            console.log(`Handling direct property: ${property}`);
+            // Try to remove the binding
+            if ("setBoundVariable" in node) {
+                node.setBoundVariable(property, null);
+                console.log(`Removed binding for ${property}`);
+                return true;
+            }
+            else {
+                console.warn(`Node does not have setBoundVariable method`);
+                return false;
+            }
+        }
+    }
+    catch (e) {
+        console.error(`Error in detachColorVariable: ${e}`);
+        return false;
+    }
 }
