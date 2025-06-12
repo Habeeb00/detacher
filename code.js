@@ -676,25 +676,21 @@ async function detachVariables(bindings, options) {
                         console.log(`Handling style property: ${binding.property}`);
                         // Check if node has the style property
                         if (binding.property in node) {
-                            // Set the style ID to an empty string to remove it
-                            node[binding.property] = "";
-                            console.log(`Removed style: ${binding.property}`);
-                            // Apply the resolved value if possible
-                            if (binding.property === "fillStyleId" && "fills" in node) {
-                                // We've already handled fills in the color section
-                                console.log("Fill style removed, value was applied in color handling");
+                            // Use async methods for style properties in dynamic pages
+                            if (binding.property === "fillStyleId" && "setFillStyleIdAsync" in node) {
+                                await node.setFillStyleIdAsync("");
                             }
-                            else if (binding.property === "strokeStyleId" && "strokes" in node) {
-                                // We've already handled strokes in the color section
-                                console.log("Stroke style removed, value was applied in color handling");
+                            else if (binding.property === "strokeStyleId" && "setStrokeStyleIdAsync" in node) {
+                                await node.setStrokeStyleIdAsync("");
                             }
-                            else if (binding.property === "textStyleId" && "fontName" in node) {
-                                // For text styles, we might need to handle font properties
-                                console.log("Text style removed, but font properties preserved");
+                            else if (binding.property === "textStyleId" && "setTextStyleIdAsync" in node) {
+                                await node.setTextStyleIdAsync("");
                             }
                             else {
-                                console.log(`Style removed: ${binding.property}`);
+                                // Fallback to regular method if async not available
+                                node[binding.property] = "";
                             }
+                            console.log(`Removed style: ${binding.property}`);
                             detached.push(binding);
                             continue;
                         }
@@ -719,45 +715,92 @@ async function detachVariables(bindings, options) {
                         }
                         // Handle color properties
                         else if (binding.variableType === VariableTypes.color) {
-                            // Handle fills
-                            if (binding.property === "fills" && "fills" in node) {
-                                // Remove the variable binding
-                                if ("setBoundVariable" in node) {
-                                    node.setBoundVariable("fills", null);
+                            console.log(`Handling color property: ${binding.property}`);
+                            try {
+                                // For fills and strokes properties
+                                if (binding.property === "fills" || binding.property === "strokes") {
+                                    const propertyName = binding.property;
+                                    const currentValue = node[propertyName];
+                                    if (currentValue !== figma.mixed && Array.isArray(currentValue)) {
+                                        // Create a new paint array without any variable bindings
+                                        const paintArray = currentValue.map(paint => {
+                                            if (paint.type === "SOLID") {
+                                                // If we have a resolved color value, use it
+                                                if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                                                    const hex = binding.resolvedValue.substring(1);
+                                                    const r = parseInt(hex.substring(0, 2), 16) / 255;
+                                                    const g = parseInt(hex.substring(2, 4), 16) / 255;
+                                                    const b = parseInt(hex.substring(4, 6), 16) / 255;
+                                                    return {
+                                                        type: "SOLID",
+                                                        color: { r, g, b },
+                                                        opacity: paint.opacity || 1
+                                                    };
+                                                }
+                                                else {
+                                                    // If no resolved value, just clone the paint without its binding
+                                                    return {
+                                                        type: "SOLID",
+                                                        color: Object.assign({}, paint.color),
+                                                        opacity: paint.opacity || 1
+                                                    };
+                                                }
+                                            }
+                                            // For non-solid paints, just clone them
+                                            return Object.assign({}, paint);
+                                        });
+                                        // Apply the new unbound paints
+                                        node[propertyName] = paintArray;
+                                    }
                                 }
-                                // Set the resolved color for all fills (or just the first, depending on your use case)
-                                const fills = [...node.fills];
-                                if (fills.length > 0 && typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                                    const hex = binding.resolvedValue.substring(1);
-                                    const r = parseInt(hex.substring(0, 2), 16) / 255;
-                                    const g = parseInt(hex.substring(2, 4), 16) / 255;
-                                    const b = parseInt(hex.substring(4, 6), 16) / 255;
-                                    fills[0] = Object.assign(Object.assign({}, fills[0]), { color: { r, g, b } });
-                                    node.fills = fills;
+                                // For individual paint colors
+                                else if (binding.property.includes("fills") || binding.property.includes("strokes")) {
+                                    const propertyName = binding.property.startsWith("fills") ? "fills" : "strokes";
+                                    const currentValue = node[propertyName];
+                                    if (currentValue !== figma.mixed && Array.isArray(currentValue)) {
+                                        // Create a copy of the current paints
+                                        const paintArray = [...currentValue];
+                                        // Try to determine which paint to update
+                                        const match = binding.property.match(/\d+/);
+                                        if (match) {
+                                            const paintIndex = parseInt(match[0]);
+                                            if (paintIndex < paintArray.length && paintArray[paintIndex].type === "SOLID") {
+                                                // If we have a resolved color value, use it
+                                                if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                                                    const hex = binding.resolvedValue.substring(1);
+                                                    const r = parseInt(hex.substring(0, 2), 16) / 255;
+                                                    const g = parseInt(hex.substring(2, 4), 16) / 255;
+                                                    const b = parseInt(hex.substring(4, 6), 16) / 255;
+                                                    // Create a new unbound paint with the resolved color
+                                                    paintArray[paintIndex] = {
+                                                        type: "SOLID",
+                                                        color: { r, g, b },
+                                                        opacity: paintArray[paintIndex].opacity || 1
+                                                    };
+                                                }
+                                                else {
+                                                    // If no resolved value, just clone the paint without its binding
+                                                    const originalPaint = paintArray[paintIndex];
+                                                    paintArray[paintIndex] = {
+                                                        type: "SOLID",
+                                                        color: Object.assign({}, originalPaint.color),
+                                                        opacity: originalPaint.opacity || 1
+                                                    };
+                                                }
+                                                // Apply the updated paints
+                                                node[propertyName] = paintArray;
+                                            }
+                                        }
+                                    }
                                 }
                                 detached.push(binding);
                                 continue;
                             }
-                            // Handle fills.0.color
-                            const fillMatch = binding.property.match(/^fills\\.(\\d+)\\.color$/);
-                            if (fillMatch && "fills" in node) {
-                                const index = parseInt(fillMatch[1]);
-                                const fills = [...node.fills];
-                                if (fills[index] && typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                                    const hex = binding.resolvedValue.substring(1);
-                                    const r = parseInt(hex.substring(0, 2), 16) / 255;
-                                    const g = parseInt(hex.substring(2, 4), 16) / 255;
-                                    const b = parseInt(hex.substring(4, 6), 16) / 255;
-                                    fills[index] = Object.assign(Object.assign({}, fills[index]), { color: { r, g, b } });
-                                    node.fills = fills;
-                                    if ("setBoundVariable" in node) {
-                                        node.setBoundVariable(binding.property, null);
-                                    }
-                                    detached.push(binding);
-                                    continue;
-                                }
+                            catch (e) {
+                                console.error(`Error handling color property: ${e}`);
+                                skipped.push(binding);
+                                continue;
                             }
-                            // Repeat similar logic for strokes, strokes.0.color, etc.
                         }
                         // Handle spacing and number properties
                         else if (binding.variableType === VariableTypes.number ||

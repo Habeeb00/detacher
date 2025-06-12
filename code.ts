@@ -775,23 +775,18 @@ async function detachVariables(
             
             // Check if node has the style property
             if (binding.property in node) {
-              // Set the style ID to an empty string to remove it
-              (node as any)[binding.property] = "";
-              console.log(`Removed style: ${binding.property}`);
-              
-              // Apply the resolved value if possible
-              if (binding.property === "fillStyleId" && "fills" in node) {
-                // We've already handled fills in the color section
-                console.log("Fill style removed, value was applied in color handling");
-              } else if (binding.property === "strokeStyleId" && "strokes" in node) {
-                // We've already handled strokes in the color section
-                console.log("Stroke style removed, value was applied in color handling");
-              } else if (binding.property === "textStyleId" && "fontName" in node) {
-                // For text styles, we might need to handle font properties
-                console.log("Text style removed, but font properties preserved");
+              // Use async methods for style properties in dynamic pages
+              if (binding.property === "fillStyleId" && "setFillStyleIdAsync" in node) {
+                await (node as any).setFillStyleIdAsync("");
+              } else if (binding.property === "strokeStyleId" && "setStrokeStyleIdAsync" in node) {
+                await (node as any).setStrokeStyleIdAsync("");
+              } else if (binding.property === "textStyleId" && "setTextStyleIdAsync" in node) {
+                await (node as any).setTextStyleIdAsync("");
               } else {
-                console.log(`Style removed: ${binding.property}`);
+                // Fallback to regular method if async not available
+                (node as any)[binding.property] = "";
               }
+              console.log(`Removed style: ${binding.property}`);
               
               detached.push(binding);
               continue;
@@ -815,243 +810,96 @@ async function detachVariables(
               (node as TextNode).characters = String(binding.resolvedValue);
             }
             // Handle color properties
-            else if (
-              binding.variableType === VariableTypes.color
-            ) {
-              // Check if it's a fill or stroke property
-              const isFill = binding.property.includes("fill") || binding.property === "fill";
-              const isStroke = binding.property.includes("stroke") || binding.property === "stroke";
-              const propertyName = isStroke ? "strokes" : (isFill ? "fills" : null);
-              
+            else if (binding.variableType === VariableTypes.color) {
               console.log(`Handling color property: ${binding.property}`);
-              console.log(`Node type: ${node.type}, has boundVariables: ${!!node.boundVariables}`);
               
-              if (node.boundVariables) {
-                console.log(`All bound variables: ${JSON.stringify(Object.keys(node.boundVariables))}`);
-              }
-              
-              // Try to use the utility function first
-              if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                try {
-                  console.log(`Using utility function for color detachment`);
-                  const success = await detachColorVariable(node, binding.property, binding.resolvedValue);
-                  if (success) {
-                    console.log(`Successfully detached color variable using utility function`);
-                    detached.push(binding);
-                    continue; // Skip the rest of the loop iteration
-                  } else {
-                    console.log(`Utility function failed, falling back to standard approach`);
-                  }
-                } catch (e) {
-                  console.error(`Error using utility function: ${e}`);
-                  console.log(`Falling back to standard approach`);
-                }
-              }
-              
-              // Handle direct color properties
-              if (binding.property === "fill" && "fills" in node) {
-                console.log(`Handling direct fill property`);
-                try {
-                  if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                    const hex = binding.resolvedValue.substring(1);
-                    const r = parseInt(hex.substring(0, 2), 16) / 255;
-                    const g = parseInt(hex.substring(2, 4), 16) / 255;
-                    const b = parseInt(hex.substring(4, 6), 16) / 255;
-                    
-                    // Create a solid paint
-                    const solidPaint: SolidPaint = {
-                      type: "SOLID",
-                      color: { r, g, b },
-                      opacity: 1
-                    };
-                    
-                    // Apply the fill
-                    (node as any).fills = [solidPaint];
-                    console.log(`Applied direct fill color`);
-                  }
-                } catch (e) {
-                  console.error(`Error applying direct fill: ${e}`);
-                }
-              } else if (binding.property === "stroke" && "strokes" in node) {
-                console.log(`Handling direct stroke property`);
-                try {
-                  if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                    const hex = binding.resolvedValue.substring(1);
-                    const r = parseInt(hex.substring(0, 2), 16) / 255;
-                    const g = parseInt(hex.substring(2, 4), 16) / 255;
-                    const b = parseInt(hex.substring(4, 6), 16) / 255;
-                    
-                    // Create a solid paint
-                    const solidPaint: SolidPaint = {
-                      type: "SOLID",
-                      color: { r, g, b },
-                      opacity: 1
-                    };
-                    
-                    // Apply the stroke
-                    (node as any).strokes = [solidPaint];
-                    console.log(`Applied direct stroke color`);
-                  }
-                } catch (e) {
-                  console.error(`Error applying direct stroke: ${e}`);
-                }
-              } else if (binding.property === "backgroundColor" && "backgroundColor" in node) {
-                console.log(`Handling backgroundColor property`);
-                try {
-                  if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                    const hex = binding.resolvedValue.substring(1);
-                    const r = parseInt(hex.substring(0, 2), 16) / 255;
-                    const g = parseInt(hex.substring(2, 4), 16) / 255;
-                    const b = parseInt(hex.substring(4, 6), 16) / 255;
-                    
-                    // Apply the background color
-                    (node as any).backgroundColor = { r, g, b };
-                    console.log(`Applied backgroundColor`);
-                  }
-                } catch (e) {
-                  console.error(`Error applying backgroundColor: ${e}`);
-                }
-              }
-              // Continue with the existing fill/stroke property handling
-              else if (propertyName && propertyName in node) {
-                const currentValue = (node as any)[propertyName];
-                console.log(`Current ${propertyName}: ${JSON.stringify(currentValue)}`);
-                
-                // Skip if the property is figma.mixed
-                if (currentValue === figma.mixed) {
-                  console.warn(`${propertyName} is mixed, skipping`);
-                  continue;
-                }
-                
-                try {
-                  // Parse the resolved value based on its type
-                  if (typeof binding.resolvedValue === "string") {
-                    // Handle hex color string
-                    if (binding.resolvedValue.startsWith("#")) {
-                const hex = binding.resolvedValue.substring(1);
-                const r = parseInt(hex.substring(0, 2), 16) / 255;
-                const g = parseInt(hex.substring(2, 4), 16) / 255;
-                const b = parseInt(hex.substring(4, 6), 16) / 255;
-                      console.log(`Setting color: RGB(${r}, ${g}, ${b})`);
-                      
-                      // Get the current fills/strokes
-                      const paintArray = JSON.parse(JSON.stringify(currentValue)) as Paint[];
-                      
-                      // Determine which paint to update based on the property
-                      let paintIndex = 0;
-                      if (binding.property.includes("fill") && binding.property !== "fills") {
-                        // Extract index from property name (e.g., "fillStyleId0" -> 0)
-                        const match = binding.property.match(/\d+$/);
-                        if (match) {
-                          paintIndex = parseInt(match[0]);
-                        }
-                      }
-                      
-                      // Ensure the paint array has enough elements
-                      if (paintIndex >= paintArray.length) {
-                        console.warn(`Paint index ${paintIndex} is out of bounds, skipping`);
-                        continue;
-                      }
-                      
-                      // Update the paint based on its type
-                      const paint = paintArray[paintIndex];
-                      
+              try {
+                // For fills and strokes properties
+                if (binding.property === "fills" || binding.property === "strokes") {
+                  const propertyName = binding.property;
+                  const currentValue = (node as any)[propertyName];
+                  
+                  if (currentValue !== figma.mixed && Array.isArray(currentValue)) {
+                    // Create a new paint array without any variable bindings
+                    const paintArray = currentValue.map(paint => {
                       if (paint.type === "SOLID") {
-                        // Update solid color
-                        // Create a new paint object with the updated color
-                        const originalColor = paint.color;
-                        const newColor = {
-                          r, g, b,
-                          a: 'a' in originalColor ? originalColor.a : 1 // Default alpha to 1 if not present
-                        };
-                        
-                        paintArray[paintIndex] = {
-                          ...paint,
-                          color: newColor
-                        };
-                        console.log(`Updated solid color at index ${paintIndex}`);
-                        
-                        // Try to remove the variable binding specifically for this color
-                        try {
-                          // The binding for a solid color might be at "fills.0.color"
-                          const specificColorBinding = `${propertyName}.${paintIndex}.color`;
-                          console.log(`Attempting to remove specific color binding: ${specificColorBinding}`);
-                          if ("setBoundVariable" in node) {
-                            (node as any).setBoundVariable(specificColorBinding, null);
-                            console.log(`Removed specific color binding: ${specificColorBinding}`);
-                          }
-                        } catch (e) {
-                          console.log(`Note: Could not remove specific color binding: ${e}`);
-                          // This is just an additional attempt, so we continue even if it fails
-                        }
-                      } else if (paint.type.includes("GRADIENT")) {
-                        // For gradients, we need to determine which color stop to update
-                        const stopIndex = binding.property.includes("gradientStops") ? 
-                          parseInt(binding.property.match(/gradientStops(\d+)/)?.[1] || "0") : 0;
-                        
-                        // Type guard for gradient paints
-                        if (!("gradientStops" in paint)) {
-                          console.warn(`Paint does not have gradientStops property`);
-                          continue;
-                        }
-                        
-                        const gradientPaint = paint as GradientPaint;
-                        
-                        if (gradientPaint.gradientStops && stopIndex < gradientPaint.gradientStops.length) {
-                          // Create a new gradient stops array with the updated color
-                          const newGradientStops = [...gradientPaint.gradientStops];
-                          const originalStopColor = newGradientStops[stopIndex].color;
-                          const newStopColor = {
-                            r, g, b,
-                            a: 'a' in originalStopColor ? originalStopColor.a : 1 // Default alpha to 1 if not present
-                          };
+                        // If we have a resolved color value, use it
+                        if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                          const hex = binding.resolvedValue.substring(1);
+                          const r = parseInt(hex.substring(0, 2), 16) / 255;
+                          const g = parseInt(hex.substring(2, 4), 16) / 255;
+                          const b = parseInt(hex.substring(4, 6), 16) / 255;
                           
-                          newGradientStops[stopIndex] = {
-                            ...newGradientStops[stopIndex],
-                            color: newStopColor
-                          };
-                          
-                          // Create a new paint object with the updated gradient stops
-                          paintArray[paintIndex] = {
-                            ...gradientPaint,
-                            gradientStops: newGradientStops
-                          } as Paint;
-                          console.log(`Updated gradient stop ${stopIndex} in ${paint.type}`);
+                          return {
+                            type: "SOLID",
+                            color: { r, g, b },
+                            opacity: paint.opacity || 1
+                          } as SolidPaint;
                         } else {
-                          console.warn(`Gradient stop index ${stopIndex} is out of bounds, skipping`);
+                          // If no resolved value, just clone the paint without its binding
+                          return {
+                            type: "SOLID",
+                            color: { ...paint.color },
+                            opacity: paint.opacity || 1
+                          } as SolidPaint;
                         }
-                      } else {
-                        console.warn(`Unsupported paint type: ${paint.type}, skipping`);
-                        continue;
                       }
-                      
-                      // Apply the updated paints back to the node
-                      try {
-                        console.log(`Applying updated ${propertyName} to node`);
-                        (node as any)[propertyName] = paintArray;
-                        console.log(`Applied updated ${propertyName}`);
-                      } catch (e) {
-                        console.error(`Error applying updated ${propertyName}: ${e}`);
-                      }
-                    } else {
-                      console.warn(`Unsupported color format: ${binding.resolvedValue}, skipping`);
-                    }
-                  } else if (typeof binding.resolvedValue === "object" && binding.resolvedValue !== null) {
-                    // Handle object color representation (e.g., {r: 0.5, g: 0.5, b: 0.5})
-                    console.log(`Setting color from object: ${JSON.stringify(binding.resolvedValue)}`);
+                      // For non-solid paints, just clone them
+                      return { ...paint };
+                    });
                     
-                    // Implementation would go here, similar to the hex color handling above
-                    console.warn(`Object color representation not fully implemented, skipping`);
-                  } else {
-                    console.warn(`Unsupported color value type: ${typeof binding.resolvedValue}, skipping`);
+                    // Apply the new unbound paints
+                    (node as any)[propertyName] = paintArray;
                   }
-                } catch (e) {
-                  console.error(`Error setting ${propertyName}: ${e}`);
-                  skipped.push(binding);
-                  continue;
                 }
-              } else {
-                console.warn(`Node does not have ${propertyName} property, skipping`);
+                // For individual paint colors
+                else if (binding.property.includes("fills") || binding.property.includes("strokes")) {
+                  const propertyName = binding.property.startsWith("fills") ? "fills" : "strokes";
+                  const currentValue = (node as any)[propertyName];
+                  
+                  if (currentValue !== figma.mixed && Array.isArray(currentValue)) {
+                    // Create a copy of the current paints
+                    const paintArray = [...currentValue];
+                    
+                    // Try to determine which paint to update
+                    const match = binding.property.match(/\d+/);
+                    if (match) {
+                      const paintIndex = parseInt(match[0]);
+                      if (paintIndex < paintArray.length && paintArray[paintIndex].type === "SOLID") {
+                        // If we have a resolved color value, use it
+                        if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                          const hex = binding.resolvedValue.substring(1);
+                          const r = parseInt(hex.substring(0, 2), 16) / 255;
+                          const g = parseInt(hex.substring(2, 4), 16) / 255;
+                          const b = parseInt(hex.substring(4, 6), 16) / 255;
+                          
+                          // Create a new unbound paint with the resolved color
+                          paintArray[paintIndex] = {
+                            type: "SOLID",
+                            color: { r, g, b },
+                            opacity: paintArray[paintIndex].opacity || 1
+                          } as SolidPaint;
+                        } else {
+                          // If no resolved value, just clone the paint without its binding
+                          const originalPaint = paintArray[paintIndex] as SolidPaint;
+                          paintArray[paintIndex] = {
+                            type: "SOLID",
+                            color: { ...originalPaint.color },
+                            opacity: originalPaint.opacity || 1
+                          } as SolidPaint;
+                        }
+                        
+                        // Apply the updated paints
+                        (node as any)[propertyName] = paintArray;
+                      }
+                    }
+                  }
+                }
+                
+                detached.push(binding);
+                continue;
+              } catch (e) {
+                console.error(`Error handling color property: ${e}`);
                 skipped.push(binding);
                 continue;
               }
