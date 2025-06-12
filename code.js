@@ -139,12 +139,25 @@ async function scanVariables() {
     };
     // Helper function to scan a node and its children recursively
     async function scanNode(node) {
+        // Diagnostic: Log node type and name
+        console.log(`[DIAG] Scanning node: ${node.name} (type: ${node.type}, id: ${node.id})`);
+        // Diagnostic: Log all properties of the node
+        try {
+            const nodeProps = Object.keys(node).filter(k => typeof node[k] !== 'function');
+            console.log(`[DIAG] Node properties: ${JSON.stringify(nodeProps)}`);
+        }
+        catch (e) {
+            console.warn(`[DIAG] Could not list node properties: ${e}`);
+        }
         // Check if node has variable bindings
         if ("boundVariables" in node && node.boundVariables) {
             const boundVars = node.boundVariables;
-            console.log(`Found node with bound variables: ${node.name}`);
-            // Log all bound variable properties to help with debugging
-            console.log(`All bound variable properties: ${JSON.stringify(Object.keys(boundVars))}`);
+            console.log(`[DIAG] Found node with bound variables: ${node.name}`);
+            // Diagnostic: Log all bound variable properties and their values
+            for (const prop in boundVars) {
+                const binding = boundVars[prop];
+                console.log(`[DIAG] Bound variable: property=${prop}, binding=${JSON.stringify(binding)}`);
+            }
             // Special handling for fills and strokes to detect nested properties
             if ("fills" in node) {
                 const fills = node.fills;
@@ -160,6 +173,48 @@ async function scanVariables() {
                                 const fillColorPath = `fills.${i}.color`;
                                 if (boundVars[fillColorPath]) {
                                     console.log(`Found variable binding for ${fillColorPath}`);
+                                    // Add VariableBinding for this fill color variable
+                                    const binding = boundVars[fillColorPath];
+                                    if (binding && binding.id) {
+                                        let variableType = VariableTypes.color;
+                                        let resolvedValue = "";
+                                        try {
+                                            const variable = await figma.variables.getVariableByIdAsync(binding.id);
+                                            if (variable) {
+                                                const resolvedVariable = variable.resolveForConsumer(node);
+                                                if (resolvedVariable &&
+                                                    typeof resolvedVariable.value === "object" &&
+                                                    resolvedVariable.value !== null &&
+                                                    "r" in resolvedVariable.value &&
+                                                    "g" in resolvedVariable.value &&
+                                                    "b" in resolvedVariable.value) {
+                                                    const color = resolvedVariable.value;
+                                                    const r = Math.round(color.r * 255);
+                                                    const g = Math.round(color.g * 255);
+                                                    const b = Math.round(color.b * 255);
+                                                    resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
+                                                        .toString(16)
+                                                        .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                                                }
+                                                else {
+                                                    resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                                }
+                                                bindings.push({
+                                                    nodeId: node.id,
+                                                    nodeName: node.name,
+                                                    variableType,
+                                                    property: fillColorPath,
+                                                    currentVariable: variable.name,
+                                                    resolvedValue,
+                                                });
+                                                counts[variableType]++;
+                                                counts.total++;
+                                            }
+                                        }
+                                        catch (e) {
+                                            console.warn(`Error resolving fill color variable: ${e}`);
+                                        }
+                                    }
                                 }
                             }
                             else if (fill.type.includes("GRADIENT")) {
@@ -170,6 +225,48 @@ async function scanVariables() {
                                         const stopPath = `fills.${i}.gradientStops.${j}.color`;
                                         if (boundVars[stopPath]) {
                                             console.log(`Found variable binding for gradient stop: ${stopPath}`);
+                                            // Add VariableBinding for this gradient stop color variable
+                                            const binding = boundVars[stopPath];
+                                            if (binding && binding.id) {
+                                                let variableType = VariableTypes.color;
+                                                let resolvedValue = "";
+                                                try {
+                                                    const variable = await figma.variables.getVariableByIdAsync(binding.id);
+                                                    if (variable) {
+                                                        const resolvedVariable = variable.resolveForConsumer(node);
+                                                        if (resolvedVariable &&
+                                                            typeof resolvedVariable.value === "object" &&
+                                                            resolvedVariable.value !== null &&
+                                                            "r" in resolvedVariable.value &&
+                                                            "g" in resolvedVariable.value &&
+                                                            "b" in resolvedVariable.value) {
+                                                            const color = resolvedVariable.value;
+                                                            const r = Math.round(color.r * 255);
+                                                            const g = Math.round(color.g * 255);
+                                                            const b = Math.round(color.b * 255);
+                                                            resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
+                                                                .toString(16)
+                                                                .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                                                        }
+                                                        else {
+                                                            resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                                        }
+                                                        bindings.push({
+                                                            nodeId: node.id,
+                                                            nodeName: node.name,
+                                                            variableType,
+                                                            property: stopPath,
+                                                            currentVariable: variable.name,
+                                                            resolvedValue,
+                                                        });
+                                                        counts[variableType]++;
+                                                        counts.total++;
+                                                    }
+                                                }
+                                                catch (e) {
+                                                    console.warn(`Error resolving gradient stop variable: ${e}`);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -193,6 +290,48 @@ async function scanVariables() {
                                 const strokeColorPath = `strokes.${i}.color`;
                                 if (boundVars[strokeColorPath]) {
                                     console.log(`Found variable binding for ${strokeColorPath}`);
+                                    // Add VariableBinding for this stroke color variable
+                                    const binding = boundVars[strokeColorPath];
+                                    if (binding && binding.id) {
+                                        let variableType = VariableTypes.color;
+                                        let resolvedValue = "";
+                                        try {
+                                            const variable = await figma.variables.getVariableByIdAsync(binding.id);
+                                            if (variable) {
+                                                const resolvedVariable = variable.resolveForConsumer(node);
+                                                if (resolvedVariable &&
+                                                    typeof resolvedVariable.value === "object" &&
+                                                    resolvedVariable.value !== null &&
+                                                    "r" in resolvedVariable.value &&
+                                                    "g" in resolvedVariable.value &&
+                                                    "b" in resolvedVariable.value) {
+                                                    const color = resolvedVariable.value;
+                                                    const r = Math.round(color.r * 255);
+                                                    const g = Math.round(color.g * 255);
+                                                    const b = Math.round(color.b * 255);
+                                                    resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
+                                                        .toString(16)
+                                                        .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                                                }
+                                                else {
+                                                    resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                                }
+                                                bindings.push({
+                                                    nodeId: node.id,
+                                                    nodeName: node.name,
+                                                    variableType,
+                                                    property: strokeColorPath,
+                                                    currentVariable: variable.name,
+                                                    resolvedValue,
+                                                });
+                                                counts[variableType]++;
+                                                counts.total++;
+                                            }
+                                        }
+                                        catch (e) {
+                                            console.warn(`Error resolving stroke color variable: ${e}`);
+                                        }
+                                    }
                                 }
                             }
                             else if (stroke.type.includes("GRADIENT")) {
@@ -203,6 +342,48 @@ async function scanVariables() {
                                         const stopPath = `strokes.${i}.gradientStops.${j}.color`;
                                         if (boundVars[stopPath]) {
                                             console.log(`Found variable binding for gradient stop: ${stopPath}`);
+                                            // Add VariableBinding for this gradient stop color variable
+                                            const binding = boundVars[stopPath];
+                                            if (binding && binding.id) {
+                                                let variableType = VariableTypes.color;
+                                                let resolvedValue = "";
+                                                try {
+                                                    const variable = await figma.variables.getVariableByIdAsync(binding.id);
+                                                    if (variable) {
+                                                        const resolvedVariable = variable.resolveForConsumer(node);
+                                                        if (resolvedVariable &&
+                                                            typeof resolvedVariable.value === "object" &&
+                                                            resolvedVariable.value !== null &&
+                                                            "r" in resolvedVariable.value &&
+                                                            "g" in resolvedVariable.value &&
+                                                            "b" in resolvedVariable.value) {
+                                                            const color = resolvedVariable.value;
+                                                            const r = Math.round(color.r * 255);
+                                                            const g = Math.round(color.g * 255);
+                                                            const b = Math.round(color.b * 255);
+                                                            resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
+                                                                .toString(16)
+                                                                .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                                                        }
+                                                        else {
+                                                            resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                                        }
+                                                        bindings.push({
+                                                            nodeId: node.id,
+                                                            nodeName: node.name,
+                                                            variableType,
+                                                            property: stopPath,
+                                                            currentVariable: variable.name,
+                                                            resolvedValue,
+                                                        });
+                                                        counts[variableType]++;
+                                                        counts.total++;
+                                                    }
+                                                }
+                                                catch (e) {
+                                                    console.warn(`Error resolving gradient stop variable: ${e}`);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -222,72 +403,60 @@ async function scanVariables() {
                     try {
                         const variable = await figma.variables.getVariableByIdAsync(binding.id);
                         if (variable) {
-                            console.log(`Variable found: ${variable.name}`);
+                            console.log(`Variable found: ${variable.name}, Resolved Type: ${variable.resolvedType}`);
                             const resolvedVariable = variable.resolveForConsumer(node);
                             console.log(`Resolved variable: ${JSON.stringify(resolvedVariable)}`);
-                            // Determine type based on property name and value
-                            if (property.includes("fill") ||
-                                property.includes("stroke") ||
-                                property.includes("background") ||
-                                property.includes("color") ||
-                                property.endsWith("StyleId") ||
-                                // Add more specific patterns for fill and stroke colors
-                                property.includes("fills.") ||
-                                property.includes("strokes.") ||
-                                property.includes("paint") ||
-                                property.includes("gradient") ||
-                                property.includes("border") ||
-                                property.includes("shadow") ||
-                                property.includes("effect")) {
-                                variableType = VariableTypes.color;
-                                console.log(`Identified color variable for property: ${property}`);
-                                // For colors, convert to hex
-                                if (resolvedVariable &&
-                                    typeof resolvedVariable.value === "object" &&
-                                    "r" in resolvedVariable.value) {
-                                    const color = resolvedVariable.value;
-                                    const r = Math.round(color.r * 255);
-                                    const g = Math.round(color.g * 255);
-                                    const b = Math.round(color.b * 255);
-                                    resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
-                                        .toString(16)
-                                        .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-                                }
-                                else {
-                                    resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
-                                }
-                            }
-                            else if (property === "characters") {
-                                // Check if the resolved value is a number first
-                                if (resolvedVariable &&
-                                    typeof resolvedVariable.value === "number") {
+                            // Determine type based on the variable's resolvedType
+                            switch (variable.resolvedType) {
+                                case "COLOR":
+                                    variableType = VariableTypes.color;
+                                    console.log(`Identified color variable for property: ${property}`);
+                                    if (resolvedVariable &&
+                                        typeof resolvedVariable.value === "object" &&
+                                        resolvedVariable.value !== null &&
+                                        "r" in resolvedVariable.value &&
+                                        "g" in resolvedVariable.value &&
+                                        "b" in resolvedVariable.value) {
+                                        const color = resolvedVariable.value;
+                                        const r = Math.round(color.r * 255);
+                                        const g = Math.round(color.g * 255);
+                                        const b = Math.round(color.b * 255);
+                                        resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
+                                            .toString(16)
+                                            .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                                        console.log(`Converted color to hex: ${resolvedValue}`);
+                                    }
+                                    else {
+                                        resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                        console.log(`Could not convert color to hex, using raw value: ${resolvedValue}`);
+                                    }
+                                    break;
+                                case "FLOAT":
                                     variableType = VariableTypes.number;
-                                    resolvedValue = Number(resolvedVariable.value);
-                                }
-                                else {
+                                    resolvedValue = Number((resolvedVariable && resolvedVariable.value) || 0);
+                                    break;
+                                case "STRING":
                                     variableType = VariableTypes.text;
                                     resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
-                                }
-                            }
-                            else if (property.includes("spacing") ||
-                                property.includes("padding") ||
-                                property.includes("margin")) {
-                                variableType = VariableTypes.other;
-                                resolvedValue = Number((resolvedVariable && resolvedVariable.value) || 0);
-                            }
-                            else if (resolvedVariable &&
-                                typeof resolvedVariable.value === "boolean") {
-                                variableType = VariableTypes.other;
-                                resolvedValue = Boolean(resolvedVariable.value);
-                            }
-                            else if (resolvedVariable &&
-                                typeof resolvedVariable.value === "number") {
-                                variableType = VariableTypes.number;
-                                resolvedValue = Number(resolvedVariable.value);
-                            }
-                            else {
-                                variableType = VariableTypes.other;
-                                resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                    break;
+                                case "BOOLEAN":
+                                    variableType = VariableTypes.other;
+                                    resolvedValue = Boolean((resolvedVariable && resolvedVariable.value) || false);
+                                    break;
+                                default:
+                                    console.warn(`Unknown resolved type: ${variable.resolvedType}. Falling back to property name.`);
+                                    // Fallback for safety
+                                    if (property.includes("color") || property.includes("fill") || property.includes("stroke")) {
+                                        variableType = VariableTypes.color;
+                                    }
+                                    else if (property.includes("character")) {
+                                        variableType = VariableTypes.text;
+                                    }
+                                    else {
+                                        variableType = VariableTypes.other;
+                                    }
+                                    resolvedValue = String((resolvedVariable && resolvedVariable.value) || "");
+                                    break;
                             }
                             console.log(`Variable type: ${variableType}, Resolved value: ${resolvedValue}`);
                             // Add to bindings array
@@ -309,6 +478,47 @@ async function scanVariables() {
                     }
                     catch (e) {
                         console.error(`Error resolving variable: ${e}`);
+                    }
+                }
+                if ((property === "fills" || property === "strokes") && binding) {
+                    const bindingsArray = Array.isArray(binding) ? binding : [binding];
+                    for (const singleBinding of bindingsArray) {
+                        if (singleBinding && singleBinding.id) {
+                            try {
+                                const variable = await figma.variables.getVariableByIdAsync(singleBinding.id);
+                                if (variable && variable.resolvedType === "COLOR") {
+                                    const resolvedVariable = variable.resolveForConsumer(node);
+                                    let resolvedValue = "";
+                                    if (resolvedVariable &&
+                                        typeof resolvedVariable.value === "object" &&
+                                        resolvedVariable.value !== null &&
+                                        "r" in resolvedVariable.value &&
+                                        "g" in resolvedVariable.value &&
+                                        "b" in resolvedVariable.value) {
+                                        const color = resolvedVariable.value;
+                                        const r = Math.round(color.r * 255);
+                                        const g = Math.round(color.g * 255);
+                                        const b = Math.round(color.b * 255);
+                                        resolvedValue = `#${r.toString(16).padStart(2, "0")}${g
+                                            .toString(16)
+                                            .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+                                    }
+                                    bindings.push({
+                                        nodeId: node.id,
+                                        nodeName: node.name,
+                                        variableType: VariableTypes.color,
+                                        property,
+                                        currentVariable: variable.name,
+                                        resolvedValue,
+                                    });
+                                    counts[VariableTypes.color]++;
+                                    counts.total++;
+                                }
+                            }
+                            catch (e) {
+                                console.warn(`Error resolving color variable for ${property}: ${e}`);
+                            }
+                        }
                     }
                 }
             }
@@ -375,7 +585,6 @@ async function scanVariables() {
 }
 // Detach variables based on provided options
 async function detachVariables(bindings, options) {
-    var _a;
     console.log("Detaching variables with options:", options);
     const detached = [];
     const skipped = [];
@@ -509,163 +718,46 @@ async function detachVariables(bindings, options) {
                             node.characters = String(binding.resolvedValue);
                         }
                         // Handle color properties
-                        else if (binding.variableType === VariableTypes.color &&
-                            (binding.property.includes("fill") ||
-                                binding.property.includes("stroke"))) {
-                            // Determine if we're dealing with fills or strokes
-                            const isStroke = binding.property.includes("stroke");
-                            const propertyName = isStroke ? "strokes" : "fills";
-                            console.log(`Handling ${isStroke ? "stroke" : "fill"} property: ${binding.property}`);
-                            console.log(`Node type: ${node.type}, has boundVariables: ${!!node.boundVariables}`);
-                            if (node.boundVariables) {
-                                console.log(`All bound variables: ${JSON.stringify(Object.keys(node.boundVariables))}`);
-                            }
-                            // Try to use the utility function first
-                            if (typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
-                                try {
-                                    console.log(`Using utility function for color detachment`);
-                                    const success = await detachColorVariable(node, binding.property, binding.resolvedValue);
-                                    if (success) {
-                                        console.log(`Successfully detached color variable using utility function`);
-                                        continue; // Skip the rest of the loop iteration
-                                    }
-                                    else {
-                                        console.log(`Utility function failed, falling back to standard approach`);
-                                    }
+                        else if (binding.variableType === VariableTypes.color) {
+                            // Handle fills
+                            if (binding.property === "fills" && "fills" in node) {
+                                // Remove the variable binding
+                                if ("setBoundVariable" in node) {
+                                    node.setBoundVariable("fills", null);
                                 }
-                                catch (e) {
-                                    console.error(`Error using utility function: ${e}`);
-                                    console.log(`Falling back to standard approach`);
+                                // Set the resolved color for all fills (or just the first, depending on your use case)
+                                const fills = [...node.fills];
+                                if (fills.length > 0 && typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                                    const hex = binding.resolvedValue.substring(1);
+                                    const r = parseInt(hex.substring(0, 2), 16) / 255;
+                                    const g = parseInt(hex.substring(2, 4), 16) / 255;
+                                    const b = parseInt(hex.substring(4, 6), 16) / 255;
+                                    fills[0] = Object.assign(Object.assign({}, fills[0]), { color: { r, g, b } });
+                                    node.fills = fills;
                                 }
-                            }
-                            // Check if node has the property
-                            if (propertyName in node) {
-                                const currentValue = node[propertyName];
-                                console.log(`Current ${propertyName}: ${JSON.stringify(currentValue)}`);
-                                // Skip if the property is figma.mixed
-                                if (currentValue === figma.mixed) {
-                                    console.warn(`${propertyName} is mixed, skipping`);
-                                    continue;
-                                }
-                                try {
-                                    // Parse the resolved value based on its type
-                                    if (typeof binding.resolvedValue === "string") {
-                                        // Handle hex color string
-                                        if (binding.resolvedValue.startsWith("#")) {
-                                            const hex = binding.resolvedValue.substring(1);
-                                            const r = parseInt(hex.substring(0, 2), 16) / 255;
-                                            const g = parseInt(hex.substring(2, 4), 16) / 255;
-                                            const b = parseInt(hex.substring(4, 6), 16) / 255;
-                                            console.log(`Setting color: RGB(${r}, ${g}, ${b})`);
-                                            // Get the current fills/strokes
-                                            const paintArray = JSON.parse(JSON.stringify(currentValue));
-                                            // Determine which paint to update based on the property
-                                            let paintIndex = 0;
-                                            if (binding.property.includes("fill") && binding.property !== "fills") {
-                                                // Extract index from property name (e.g., "fillStyleId0" -> 0)
-                                                const match = binding.property.match(/\d+$/);
-                                                if (match) {
-                                                    paintIndex = parseInt(match[0]);
-                                                }
-                                            }
-                                            // Ensure the paint array has enough elements
-                                            if (paintIndex >= paintArray.length) {
-                                                console.warn(`Paint index ${paintIndex} is out of bounds, skipping`);
-                                                continue;
-                                            }
-                                            // Update the paint based on its type
-                                            const paint = paintArray[paintIndex];
-                                            if (paint.type === "SOLID") {
-                                                // Update solid color
-                                                // Create a new paint object with the updated color
-                                                const originalColor = paint.color;
-                                                const newColor = {
-                                                    r, g, b,
-                                                    a: 'a' in originalColor ? originalColor.a : 1 // Default alpha to 1 if not present
-                                                };
-                                                paintArray[paintIndex] = Object.assign(Object.assign({}, paint), { color: newColor });
-                                                console.log(`Updated solid color at index ${paintIndex}`);
-                                                // Try to remove the variable binding specifically for this color
-                                                try {
-                                                    // The binding for a solid color might be at "fills.0.color"
-                                                    const specificColorBinding = `${propertyName}.${paintIndex}.color`;
-                                                    console.log(`Attempting to remove specific color binding: ${specificColorBinding}`);
-                                                    if ("setBoundVariable" in node) {
-                                                        node.setBoundVariable(specificColorBinding, null);
-                                                        console.log(`Removed specific color binding: ${specificColorBinding}`);
-                                                    }
-                                                }
-                                                catch (e) {
-                                                    console.log(`Note: Could not remove specific color binding: ${e}`);
-                                                    // This is just an additional attempt, so we continue even if it fails
-                                                }
-                                            }
-                                            else if (paint.type.includes("GRADIENT")) {
-                                                // For gradients, we need to determine which color stop to update
-                                                const stopIndex = binding.property.includes("gradientStops") ?
-                                                    parseInt(((_a = binding.property.match(/gradientStops(\d+)/)) === null || _a === void 0 ? void 0 : _a[1]) || "0") : 0;
-                                                // Type guard for gradient paints
-                                                if (!("gradientStops" in paint)) {
-                                                    console.warn(`Paint does not have gradientStops property`);
-                                                    continue;
-                                                }
-                                                const gradientPaint = paint;
-                                                if (gradientPaint.gradientStops && stopIndex < gradientPaint.gradientStops.length) {
-                                                    // Create a new gradient stops array with the updated color
-                                                    const newGradientStops = [...gradientPaint.gradientStops];
-                                                    const originalStopColor = newGradientStops[stopIndex].color;
-                                                    const newStopColor = {
-                                                        r, g, b,
-                                                        a: 'a' in originalStopColor ? originalStopColor.a : 1 // Default alpha to 1 if not present
-                                                    };
-                                                    newGradientStops[stopIndex] = Object.assign(Object.assign({}, newGradientStops[stopIndex]), { color: newStopColor });
-                                                    // Create a new paint object with the updated gradient stops
-                                                    paintArray[paintIndex] = Object.assign(Object.assign({}, gradientPaint), { gradientStops: newGradientStops });
-                                                    console.log(`Updated gradient stop ${stopIndex} in ${paint.type}`);
-                                                }
-                                                else {
-                                                    console.warn(`Gradient stop index ${stopIndex} is out of bounds, skipping`);
-                                                }
-                                            }
-                                            else {
-                                                console.warn(`Unsupported paint type: ${paint.type}, skipping`);
-                                                continue;
-                                            }
-                                            // Apply the updated paints back to the node
-                                            try {
-                                                console.log(`Applying updated ${propertyName} to node`);
-                                                node[propertyName] = paintArray;
-                                                console.log(`Applied updated ${propertyName}`);
-                                            }
-                                            catch (e) {
-                                                console.error(`Error applying updated ${propertyName}: ${e}`);
-                                            }
-                                        }
-                                        else {
-                                            console.warn(`Unsupported color format: ${binding.resolvedValue}, skipping`);
-                                        }
-                                    }
-                                    else if (typeof binding.resolvedValue === "object" && binding.resolvedValue !== null) {
-                                        // Handle object color representation (e.g., {r: 0.5, g: 0.5, b: 0.5})
-                                        console.log(`Setting color from object: ${JSON.stringify(binding.resolvedValue)}`);
-                                        // Implementation would go here, similar to the hex color handling above
-                                        console.warn(`Object color representation not fully implemented, skipping`);
-                                    }
-                                    else {
-                                        console.warn(`Unsupported color value type: ${typeof binding.resolvedValue}, skipping`);
-                                    }
-                                }
-                                catch (e) {
-                                    console.error(`Error setting ${propertyName}: ${e}`);
-                                    skipped.push(binding);
-                                    continue;
-                                }
-                            }
-                            else {
-                                console.warn(`Node does not have ${propertyName} property, skipping`);
-                                skipped.push(binding);
+                                detached.push(binding);
                                 continue;
                             }
+                            // Handle fills.0.color
+                            const fillMatch = binding.property.match(/^fills\\.(\\d+)\\.color$/);
+                            if (fillMatch && "fills" in node) {
+                                const index = parseInt(fillMatch[1]);
+                                const fills = [...node.fills];
+                                if (fills[index] && typeof binding.resolvedValue === "string" && binding.resolvedValue.startsWith("#")) {
+                                    const hex = binding.resolvedValue.substring(1);
+                                    const r = parseInt(hex.substring(0, 2), 16) / 255;
+                                    const g = parseInt(hex.substring(2, 4), 16) / 255;
+                                    const b = parseInt(hex.substring(4, 6), 16) / 255;
+                                    fills[index] = Object.assign(Object.assign({}, fills[index]), { color: { r, g, b } });
+                                    node.fills = fills;
+                                    if ("setBoundVariable" in node) {
+                                        node.setBoundVariable(binding.property, null);
+                                    }
+                                    detached.push(binding);
+                                    continue;
+                                }
+                            }
+                            // Repeat similar logic for strokes, strokes.0.color, etc.
                         }
                         // Handle spacing and number properties
                         else if (binding.variableType === VariableTypes.number ||
@@ -828,6 +920,82 @@ async function detachVariables(bindings, options) {
 async function detachColorVariable(node, property, colorValue) {
     console.log(`Attempting to detach color variable for property: ${property}`);
     try {
+        // Parse the color value
+        if (!colorValue.startsWith("#")) {
+            console.warn(`Color value is not in hex format: ${colorValue}`);
+            return false;
+        }
+        const hex = colorValue.substring(1);
+        const r = parseInt(hex.substring(0, 2), 16) / 255;
+        const g = parseInt(hex.substring(2, 4), 16) / 255;
+        const b = parseInt(hex.substring(4, 6), 16) / 255;
+        // Handle direct color properties first
+        if (property === "fill" && "fills" in node) {
+            console.log(`Handling direct fill property`);
+            try {
+                // Create a solid paint
+                const solidPaint = {
+                    type: "SOLID",
+                    color: { r, g, b },
+                    opacity: 1
+                };
+                // Apply the fill
+                node.fills = [solidPaint];
+                console.log(`Applied direct fill color`);
+                // Try to remove the binding
+                if ("setBoundVariable" in node) {
+                    node.setBoundVariable(property, null);
+                    console.log(`Removed binding for ${property}`);
+                }
+                return true;
+            }
+            catch (e) {
+                console.error(`Error applying direct fill: ${e}`);
+                return false;
+            }
+        }
+        else if (property === "stroke" && "strokes" in node) {
+            console.log(`Handling direct stroke property`);
+            try {
+                // Create a solid paint
+                const solidPaint = {
+                    type: "SOLID",
+                    color: { r, g, b },
+                    opacity: 1
+                };
+                // Apply the stroke
+                node.strokes = [solidPaint];
+                console.log(`Applied direct stroke color`);
+                // Try to remove the binding
+                if ("setBoundVariable" in node) {
+                    node.setBoundVariable(property, null);
+                    console.log(`Removed binding for ${property}`);
+                }
+                return true;
+            }
+            catch (e) {
+                console.error(`Error applying direct stroke: ${e}`);
+                return false;
+            }
+        }
+        else if (property === "backgroundColor" && "backgroundColor" in node) {
+            console.log(`Handling backgroundColor property`);
+            try {
+                // Apply the background color
+                node.backgroundColor = { r, g, b };
+                console.log(`Applied backgroundColor`);
+                // Try to remove the binding
+                if ("setBoundVariable" in node) {
+                    node.setBoundVariable(property, null);
+                    console.log(`Removed binding for ${property}`);
+                }
+                return true;
+            }
+            catch (e) {
+                console.error(`Error applying backgroundColor: ${e}`);
+                return false;
+            }
+        }
         // Check if the property is a nested property like "fills.0.color"
         if (property.includes(".")) {
             const parts = property.split(".");
