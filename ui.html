@@ -438,41 +438,46 @@
 
       .toast {
         position: fixed;
-        bottom: 20px;
+        bottom: 60px;
         left: 50%;
         transform: translateX(-50%);
-        padding: 10px 20px;
-        background: rgba(28, 28, 30, 0.9);
+        padding: 8px 16px;
+        background: rgba(28, 28, 30, 0.8);
         color: white;
-        border-radius: 10px;
-        font-size: 0.8rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
         opacity: 0;
         transition: all 0.3s ease;
         pointer-events: none;
         box-shadow: var(--shadow-md);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+        max-width: 90%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        z-index: 1000;
       }
 
       .toast.show {
         opacity: 1;
-        transform: translateX(-50%) translateY(-8px);
+        transform: translateX(-50%) translateY(-4px);
       }
 
       .toast.success {
-        background: rgba(52, 199, 89, 0.9);
+        background: rgba(52, 199, 89, 0.8);
         color: white;
         font-weight: 500;
       }
 
       .toast.error {
-        background: rgba(255, 59, 48, 0.9);
+        background: rgba(255, 59, 48, 0.8);
         color: white;
         font-weight: 500;
       }
 
       .toast.info {
-        background: rgba(0, 122, 255, 0.9);
+        background: rgba(0, 122, 255, 0.8);
         color: white;
         font-weight: 500;
       }
